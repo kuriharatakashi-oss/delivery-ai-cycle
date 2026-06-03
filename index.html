@@ -688,7 +688,7 @@ async function loadClaudeAnalysis(index, vehicle, data, fallbackText){
   const commonText = common.length ? common.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
   const vehicleText = vehicleSpecific.length ? vehicleSpecific.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
 
-  const prompt = `あなたは物流コスト改善の専門AIです。以下の車両データと制約条件を分析し、現状の課題と改善提案を150字程度で簡潔に日本語で述べてください。制約条件がある場合は必ず考慮し、その制約を踏まえた上での現実的な改善策を提案してください。\n\nセンター名: ${CENTERS[currentCenter].name}\n対象年月: ${currentMonth}\n対象車両: ${vehicle.no}\n車格: ${vehicle.type}\n温度帯: ${vehicle.temp || '不明'}\n理論コスト: ${vehicle.theory.toLocaleString()}円\n稼働日数: ${vehicle.days}日\n運行時間: ${vehicle.hours}h\n\nセンター共通の蓄積済み制約条件:\n${commonText}\n\n対象車両の蓄積済み個別制約条件:\n${vehicleText}\n\n同センターの他車両との比較データ:\n${otherVehicles}`;
+  const prompt = `あなたは物流コスト改善の専門AIです。以下の車両データと制約条件を分析し、現状の課題と改善提案を150字程度で簡潔に日本語で述べてください。制約条件がある場合は必ず考慮し、その制約を踏まえた上での現実的な改善策を提案してください。\n\nセンター名: ${CENTERS[currentCenter].name}\n対象年月: ${currentMonth}\n対象車両: ${vehicle.no}\n車格: ${vehicle.type}\n温度帯: ${vehicle.temp || '不明'}\n理論コスト: ${vehicle.theory.toLocaleString()}円\n稼働日数: ${vehicle.days}日\n運行時間: ${vehicle.hours}h\n\nセンター共通の蓄積済み制約条件:\n${commonText}\n\n対象車両の蓄積済み個別制約条件:\n${vehicleText}\n\n同センターの他車両との比較データ:\n${otherVehicles}\n\n回答はプレーンテキストのみで返してください。HTMLタグ、マークダウン、装飾は一切使わないでください。`;
 
   try{
     const apiKey = getStoredApiKey();
