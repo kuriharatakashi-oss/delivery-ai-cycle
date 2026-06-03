@@ -2,782 +2,667 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>地学ご担当者A 週別業務波動</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配送AI駆動改善サイクル</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; background: #f5f7fa; color: #2d3748; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f4f4f0;color:#1a1a18;font-size:16px}
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f4f4f0;--bg-tertiary:#eceae3;
+  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#888780;
+  --border-light:rgba(0,0,0,0.12);--border-mid:rgba(0,0,0,0.2);
+  --radius-md:8px;--radius-lg:12px;
+  --blue-50:#E6F1FB;--blue-100:#B5D4F4;--blue-400:#378ADD;--blue-600:#185FA5;--blue-800:#0C447C;
+  --green-50:#EAF3DE;--green-600:#3B6D11;
+  --red-50:#FCEBEB;--red-100:#F7C1C1;--red-600:#A32D2D;
+  --amber-50:#FAEEDA;--amber-100:#FAC775;--amber-600:#854F0B;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg-primary:#1e1e1c;--bg-secondary:#2a2a28;--bg-tertiary:#323230;
+    --text-primary:#e8e8e4;--text-secondary:#a8a8a0;--text-tertiary:#6a6a62;
+    --border-light:rgba(255,255,255,0.1);--border-mid:rgba(255,255,255,0.18);
+  }
+}
+.app{min-height:100vh;background:var(--bg-secondary)}
+.topbar{background:var(--bg-primary);border-bottom:0.5px solid var(--border-light);padding:12px 40px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-title{font-size:18px;font-weight:500;color:var(--text-primary)}
+.step-nav{background:var(--bg-primary);border-bottom:0.5px solid var(--border-light);padding:0 40px;display:flex;align-items:stretch;overflow-x:auto}
+.step-btn{padding:12px 22px;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--text-secondary);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color 0.15s}
+.step-btn:hover{color:var(--text-primary)}
+.step-btn.active{color:var(--blue-600);border-bottom:2px solid var(--blue-600);font-weight:500}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--bg-tertiary);font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex-shrink:0}
+.step-btn.active .step-num{background:var(--blue-600);color:#fff}
+.step-btn.done .step-num{background:var(--green-600);color:#fff}
+.content{padding:24px 40px;max-width:1600px;margin:0 auto}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:16px 20px}
+.kpi-label{font-size:13px;color:var(--text-secondary);margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:500;color:var(--text-primary)}
+.kpi-sub{font-size:13px;margin-top:4px;color:var(--text-secondary)}
+.kpi-danger{color:var(--red-600)}
+.kpi-warn{color:var(--amber-600)}
+.kpi-success{color:var(--green-600)}
+.panel{background:var(--bg-primary);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:18px}
+.panel-title{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.ai-box{background:var(--blue-50);border:0.5px solid var(--blue-100);border-radius:var(--radius-md);padding:14px 18px;margin-top:14px}
+.ai-box-title{font-size:13px;font-weight:500;color:var(--blue-800);margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.ai-box-body{font-size:14px;color:var(--blue-600);line-height:1.7}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:500}
+.badge-danger{background:var(--red-50);color:var(--red-600)}
+.badge-warn{background:var(--amber-50);color:var(--amber-600)}
+.badge-ok{background:var(--green-50);color:var(--green-600)}
+.badge-info{background:var(--blue-50);color:var(--blue-600)}
+.rec-card{border:0.5px solid var(--border-light);border-radius:var(--radius-md);padding:18px;margin-bottom:10px;background:var(--bg-primary);transition:background 0.2s}
+.rec-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px}
+.rec-title{font-size:15px;font-weight:500;color:var(--text-primary)}
+.rec-body{font-size:14px;color:var(--text-secondary);line-height:1.7}
+.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{padding:8px 18px;border-radius:var(--radius-md);font-size:14px;font-weight:500;cursor:pointer;border:0.5px solid var(--border-mid);background:var(--bg-primary);color:var(--text-primary);display:inline-flex;align-items:center;gap:5px;transition:background 0.12s}
+.btn:hover{background:var(--bg-secondary)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.btn-primary{background:var(--blue-600);color:#fff;border-color:var(--blue-600)}
+.btn-primary:hover{background:var(--blue-800)}
+.btn-danger{background:var(--red-50);color:var(--red-600);border-color:var(--red-100)}
+.btn-danger:hover{background:var(--red-100)}
+.modal-overlay{background:rgba(0,0,0,0.4);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;padding:24px;min-height:280px}
+.modal{background:var(--bg-primary);border-radius:var(--radius-lg);border:0.5px solid var(--border-light);padding:20px 22px;width:100%;max-width:560px}
+.modal-title{font-size:16px;font-weight:500;margin-bottom:10px;color:var(--text-primary)}
+.modal-body{font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px}
+.alert-bar{background:var(--amber-50);border:0.5px solid var(--amber-100);border-radius:var(--radius-md);padding:12px 16px;font-size:14px;color:var(--amber-600);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.reason-input{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-mid);background:var(--bg-secondary);color:var(--text-primary);margin-top:9px;min-height:52px;resize:vertical;outline:none;font-family:inherit}
+.reason-input:focus{border-color:var(--blue-400)}
+.action-log{border:0.5px solid var(--border-light);border-radius:var(--radius-md);padding:18px;background:var(--bg-secondary);margin-bottom:14px}
+.action-log-title{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:10px}
+.check-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:14px;color:var(--text-secondary);flex-wrap:wrap}
+.check-item{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+.check-box{width:20px;height:20px;border-radius:4px;border:0.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;background:var(--bg-primary);flex-shrink:0;transition:background 0.12s}
+.check-box.checked{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-size:12px}
+.check-box.checked::after{content:'✓'}
+.constraint-tag{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:99px;font-size:13px;background:var(--red-50);color:var(--red-600);border:0.5px solid var(--red-100)}
+.constraint-tag .del{cursor:pointer;opacity:0.6}
+.constraint-tag .del:hover{opacity:1}
+.section-hidden{display:none}
+/* 車両テーブル */
+.veh-table{width:100%;border-collapse:collapse;font-size:13px}
+.veh-table th{text-align:left;padding:8px 10px;border-bottom:0.5px solid var(--border-light);color:var(--text-secondary);font-weight:500;white-space:nowrap;background:var(--bg-secondary)}
+.veh-table td{padding:8px 10px;border-bottom:0.5px solid var(--border-light);color:var(--text-primary);white-space:nowrap}
+.veh-table tr:last-child td{border-bottom:none}
+.veh-table tr:hover td{background:var(--bg-secondary)}
+.bar-inline{display:inline-block;height:8px;border-radius:99px;vertical-align:middle;margin-right:4px}
+/* 車両構成バー */
+.comp-row{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:10px}
+.comp-label{width:70px;color:var(--text-secondary);text-align:right;flex-shrink:0}
+.comp-bg{flex:1;background:var(--bg-tertiary);border-radius:99px;height:14px;overflow:hidden}
+.comp-fill{height:100%;border-radius:99px}
+.comp-val{width:80px;color:var(--text-primary);font-size:13px}
+.legend-row{display:flex;gap:16px;font-size:13px;color:var(--text-secondary);margin-bottom:10px}
+.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
+input[type=text]{font-size:14px;padding:8px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-mid);background:var(--bg-secondary);color:var(--text-primary);outline:none;font-family:inherit}
+input[type=text]:focus{border-color:var(--blue-400)}
 
-  h1 { font-size: 18px; font-weight: 700; padding: 20px 24px 8px; color: #1a202c; }
-  .subtitle { font-size: 12px; color: #718096; padding: 0 24px 16px; }
-
-  .section { background: white; margin: 0 16px 16px; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-  .section-title { font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-  .score-legend { display: flex; gap: 16px; font-size: 11px; color: #718096; margin-bottom: 12px; flex-wrap: wrap; }
-  .score-legend span { display: flex; align-items: center; gap: 4px; }
-  .dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink:0; }
-
-  .heatmap-wrap { overflow-x: auto; }
-
-  #tooltip { position: fixed; background: #2d3748; color: white; padding: 8px 12px; border-radius: 6px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100; max-width: 240px; line-height: 1.6; }
-
-  .bar-wrap { overflow-x: auto; }
-  svg text { font-family: inherit; }
-
-  .tab-bar { display: flex; gap: 4px; }
-  .tab { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid #e2e8f0; color: #718096; background: white; transition: all 0.15s; }
-  .tab.active { background: #2d3748; color: white; border-color: #2d3748; }
-
-  .insight-box { background: #f7f9fb; border-left: 3px solid #4a5568; padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 12px; line-height: 1.7; margin-top: 14px; }
-  .insight-box b { color: #276749; }
-
-  /* AI Chat */
-  .chat-section { background: white; margin: 0 16px 16px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }
-  .chat-header { background: linear-gradient(135deg, #2d3748, #4a5568); padding: 12px 18px; color: white; font-size: 13px; font-weight: 700; }
-  .chat-header span { font-weight: 400; font-size: 11px; opacity: 0.85; margin-left: 8px; }
-  .chat-messages { padding: 14px 18px; min-height: 80px; max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-  .msg { max-width: 85%; padding: 9px 13px; border-radius: 10px; font-size: 12px; line-height: 1.65; }
-  .msg-user { background: #ebf4ff; color: #2b6cb0; align-self: flex-end; border-bottom-right-radius: 3px; }
-  .msg-ai { background: #f7fafc; color: #2d3748; align-self: flex-start; border-bottom-left-radius: 3px; border: 1px solid #e2e8f0; }
-  .msg-ai b { color: #2b6cb0; }
-  .msg-loading { color: #a0aec0; font-style: italic; }
-  .chat-input-row { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid #e2e8f0; background: #fafafa; }
-  .chat-input { flex: 1; padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-family: inherit; outline: none; transition: border-color 0.15s; }
-  .chat-input:focus { border-color: #4299e1; }
-  .chat-send { padding: 8px 16px; background: #2b6cb0; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
-  .chat-send:hover { background: #2c5282; }
-  .chat-send:disabled { background: #a0aec0; cursor: not-allowed; }
-  .suggestion-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 18px 12px; }
-  .chip { padding: 5px 11px; background: #ebf4ff; color: #2b6cb0; border-radius: 20px; font-size: 11px; cursor: pointer; border: 1px solid #bee3f8; transition: all 0.15s; }
-  .chip:hover { background: #bee3f8; }
+/* ===== スマホ対応 (768px以下) ===== */
+@media(max-width:768px){
+  body{font-size:14px}
+  .topbar{padding:10px 16px;gap:8px;flex-wrap:wrap}
+  .topbar-title{font-size:15px}
+  .topbar span[style]{display:none}
+  .step-nav{padding:0 8px;justify-content:flex-start}
+  .step-btn{padding:10px 12px;font-size:12px;gap:4px}
+  .step-num{width:17px;height:17px;font-size:10px}
+  /* センター選択をタブの下に移動 */
+  .center-select-wrap{order:10;width:100%;padding:8px 16px;border-top:0.5px solid var(--border-light);background:var(--bg-primary)}
+  .center-select-wrap select{width:100%;font-size:15px !important;padding:10px 12px !important}
+  .content{padding:14px 14px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+  .kpi-card{padding:12px 14px}
+  .kpi-val{font-size:20px}
+  .kpi-label{font-size:12px}
+  .kpi-sub{font-size:11px}
+  .two-col{grid-template-columns:1fr;gap:12px}
+  .panel{padding:14px 16px;margin-bottom:12px}
+  .panel-title{font-size:14px;margin-bottom:10px}
+  .ai-box{padding:12px 14px;margin-top:10px}
+  .ai-box-title{font-size:12px}
+  .ai-box-body{font-size:13px}
+  /* 車両テーブルは横スクロール */
+  .veh-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+  .veh-table{font-size:12px;min-width:480px}
+  .veh-table th,.veh-table td{padding:7px 8px}
+  .comp-label{width:55px;font-size:12px}
+  .comp-val{width:60px;font-size:12px}
+  .comp-row{gap:7px;font-size:12px}
+  .rec-card{padding:14px}
+  .rec-title{font-size:14px}
+  .rec-body{font-size:13px}
+  .btn{padding:10px 16px;font-size:13px}
+  .btn-row{gap:8px}
+  .modal-overlay{padding:12px}
+  .modal{padding:16px}
+  .modal-title{font-size:15px}
+  .modal-body{font-size:13px}
+  .alert-bar{font-size:13px;padding:10px 12px}
+  .action-log{padding:14px}
+  .action-log-title{font-size:14px}
+  .check-row{font-size:13px;gap:6px}
+  .check-box{width:22px;height:22px}
+  .constraint-tag{font-size:12px;padding:5px 12px}
+  .legend-row{font-size:12px;gap:12px}
+  .reason-input{font-size:13px}
+  input[type=text]{font-size:13px;width:100%}
+}
 </style>
 </head>
 <body>
+<div class="app">
+  <div class="topbar">
+    <i class="ti ti-truck" aria-hidden="true" style="font-size:22px;color:var(--blue-600)"></i>
+    <span class="topbar-title">配送AI駆動改善サイクル</span>
+    <span style="font-size:13px;color:var(--text-secondary)">対象月：2026年03月</span>
+  </div>
 
-<h1>📊 地学ご担当者A 週別業務波動ビジュアライザー</h1>
-<p class="subtitle">模試ごとの負荷スコアを集計。〆切・戻し系=3点 ／ 会議・面談=2点（前後週+2キャリー） ／ 入稿・チェック=1点<br>※「2026年模試向け」＝2026年3月実施の模試を<b>2025年中</b>に準備する作業スケジュール</p>
+  <div class="step-nav" style="justify-content:space-between;flex-wrap:wrap">
+    <div style="display:flex">
+      <button class="step-btn active" id="tab0" onclick="showStep(0)">
+        <span class="step-num done" id="sn0">✓</span>データ分析
+      </button>
+      <button class="step-btn" id="tab1" onclick="showStep(1)">
+        <span class="step-num" id="sn1">2</span>仮説構築
+      </button>
+      <button class="step-btn" id="tab2" onclick="showStep(2)">
+        <span class="step-num" id="sn2">3</span>AP立案
+      </button>
+      <button class="step-btn" id="tab3" onclick="showStep(3)">
+        <span class="step-num" id="sn3">4</span>アクション管理
+      </button>
+    </div>
+    <div class="center-select-wrap" style="display:flex;align-items:center;gap:8px;padding:0 16px;border-left:0.5px solid var(--border-light)">
+      <i class="ti ti-building-warehouse" aria-hidden="true" style="font-size:16px;color:var(--text-secondary)"></i>
+      <select id="centerSelect" onchange="changeCenter(this.value)" style="font-size:16px;padding:8px 14px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-mid);color:var(--text-primary);cursor:pointer;outline:none;font-weight:500;min-width:180px">
+        <option value="yashio">八潮センター</option>
+        <option value="utsunomiya">宇都宮センター</option>
+        <option value="omiya">大宮センター</option>
+        <option value="chiba">千葉センター</option>
+        <option value="kawasaki">川崎センター</option>
+      </select>
+    </div>
+  </div>
 
-<div id="tooltip"></div>
+  <div class="content">
 
-<!-- Section 0: Scoring Rules -->
-<div class="section">
-  <div class="section-title">📋 スコアリングのルール</div>
-  <p style="font-size:12px;color:#718096;margin-bottom:14px">実際のスケジュールデータをもとに、業務負荷を3段階でスコア化しています。</p>
-
-  <div style="display:flex;flex-direction:column;gap:10px">
-
-    <!-- 3点 -->
-    <div style="border-radius:8px;border:1.5px solid #b8c8d8;overflow:hidden">
-      <div style="background:#e8eef3;padding:8px 14px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:18px;font-weight:800;color:#2b6cb0;min-width:28px">3点</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:#2b6cb0">先生からの原稿返却・〆切</div>
-          <div style="font-size:11px;color:#4a7eb5;margin-top:1px">最も負荷が高い。〆切直後〜翌週にかけて確認・集約・修正対応が集中する</div>
+    <!-- Step 0: データ分析 -->
+    <div id="step0">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">実払コスト</div>
+          <div class="kpi-val" id="kpi-actual">50,438千円</div>
+          <div class="kpi-sub" id="kpi-actual-sub">前月比 +14.0%</div>
         </div>
-        <div style="margin-left:auto;font-size:11px;color:#718096;white-space:nowrap">同週残り営業日<b style="color:#c53030">+2点</b>・翌週<b style="color:#c53030">+1点</b>キャリー</div>
+        <div class="kpi-card">
+          <div class="kpi-label">理論コスト</div>
+          <div class="kpi-val" id="kpi-theory">42,233千円</div>
+          <div class="kpi-sub" id="kpi-theory-sub">前月比 +13.5%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">乖離額</div>
+          <div class="kpi-val kpi-danger" id="kpi-gap">8,205千円</div>
+          <div class="kpi-sub kpi-danger" id="kpi-gap-rate">乖離率 16.3%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">総配車台数</div>
+          <div class="kpi-val" id="kpi-cars">1,568台</div>
+          <div class="kpi-sub" id="kpi-cars-sub">軽487 / 2-3t 1,026 / 4t 55</div>
+        </div>
       </div>
-      <div style="padding:10px 14px;background:white;display:flex;flex-wrap:wrap;gap:6px">
-        <div style="font-size:11px;color:#4a5568;font-weight:600;width:100%;margin-bottom:2px">▶ 実データ例</div>
-        <div class="ex-chip high">第２稿〆 <span>（1月・26-2-2基礎）</span></div>
-        <div class="ex-chip high">第一稿〆 <span>（1月・26-3-9）</span></div>
-        <div class="ex-chip high">修正原稿アップ <span>（1月・26-3-7地学）</span></div>
-        <div class="ex-chip high">第3稿〆 <span>（2月・26-2-2基礎）</span></div>
-        <div class="ex-chip high">赤入れ原稿アップ <span>（複数模試）</span></div>
-        <div class="ex-chip high">原稿整理・〆切 <span>（各模試）</span></div>
+
+      <div class="two-col">
+        <!-- 左：車両別コスト乖離テーブル -->
+        <div class="panel">
+          <div class="panel-title">
+            <i class="ti ti-table" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>
+            車両別コスト乖離（端末No別）
+            <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:4px">乖離上位を表示</span>
+          </div>
+          <div class="veh-table-wrap">
+            <table class="veh-table">
+              <thead>
+                <tr>
+                  <th>端末No</th>
+                  <th>車格</th>
+                  <th>理論コスト</th>
+                  <th>稼働日数</th>
+                  <th>運行時間(日平均)</th>
+                  <th>乖離判定</th>
+                </tr>
+              </thead>
+              <tbody id="vehicleTableBody"></tbody>
+            </table>
+          </div>
+          <div class="ai-box">
+            <div class="ai-box-title"><i class="ti ti-brain" aria-hidden="true" style="font-size:14px"></i>AI INFERENCE</div>
+            <div class="ai-box-body" id="ai-analysis-text"></div>
+          </div>
+        </div>
+
+        <!-- 右：車両構成 -->
+        <div class="panel">
+          <div class="panel-title">
+            <i class="ti ti-car" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>
+            車両構成（車格別配車比率）
+          </div>
+          <div class="legend-row">
+            <span><span class="legend-dot" style="background:#378ADD"></span>配車台数</span>
+            <span><span class="legend-dot" style="background:#E24B4A"></span>理論コスト比率</span>
+          </div>
+          <div id="compChart"></div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="kpi-card">
+              <div class="kpi-label">軽貨物依存度</div>
+              <div class="kpi-val kpi-warn" id="kpi-light">96%</div>
+              <div class="kpi-sub">配車台数ベース</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">実払/理論 単価比</div>
+              <div class="kpi-val kpi-danger" id="kpi-unitratio">119%</div>
+              <div class="kpi-sub">円/h ベース</div>
+            </div>
+          </div>
+          <div class="ai-box">
+            <div class="ai-box-title"><i class="ti ti-brain" aria-hidden="true" style="font-size:14px"></i>AI INFERENCE</div>
+            <div class="ai-box-body" id="ai-vehicle-text"></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 2点 -->
-    <div style="border-radius:8px;border:1.5px solid #d4c0a8;overflow:hidden">
-      <div style="background:#f4efe8;padding:8px 14px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:18px;font-weight:800;color:#c05621;min-width:28px">2点</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:#c05621">先生との会議・面談・審査</div>
-          <div style="font-size:11px;color:#9c6a2e;margin-top:1px">会議前の資料準備・当日対応・会議後の議事整理がセットで発生する</div>
-        </div>
+    <!-- Step 1: 仮説構築 -->
+    <div id="step1" class="section-hidden">
+      <div class="panel">
+        <div class="panel-title"><i class="ti ti-bulb" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>AIレコメンド仮説</div>
+        <div id="hypoList"></div>
       </div>
-      <div style="padding:10px 14px;background:white;display:flex;flex-wrap:wrap;gap:6px">
-        <div style="font-size:11px;color:#4a5568;font-weight:600;width:100%;margin-bottom:2px">▶ 実データ例</div>
-        <div class="ex-chip mid">赤入れ面談 <span>（1月・26-3-7地学）</span></div>
-        <div class="ex-chip mid">作問会議①（対面）10時〜 <span>（2月・26-3-9）</span></div>
-        <div class="ex-chip mid">作問会議19:30〜 <span>（2月・26-2-2専門）</span></div>
-        <div class="ex-chip mid">プレ審査 <span>（2月・26-3-9）</span></div>
-        <div class="ex-chip mid">審査会議 <span>（各模試）</span></div>
-        <div class="ex-chip mid">難易調整会議 <span>（各模試）</span></div>
+      <div class="panel">
+        <div class="panel-title"><i class="ti ti-database" aria-hidden="true" style="font-size:15px;color:var(--amber-600)"></i>蓄積済み制約条件</div>
+        <div id="constraintList" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" id="newConstraint" placeholder="新しい制約条件を入力（例：No.046は道幅制限により2t車不可）" style="flex:1;min-width:200px">
+          <button class="btn btn-primary" onclick="addConstraint()"><i class="ti ti-plus" aria-hidden="true"></i> 制約を追加してAIに学習させる</button>
+        </div>
       </div>
     </div>
 
-    <!-- 1点 -->
-    <div style="border-radius:8px;border:1.5px solid #b0c8b8;overflow:hidden">
-      <div style="background:#eef5f1;padding:8px 14px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:18px;font-weight:800;color:#276749;min-width:28px">1点</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:#276749">入稿・発送・チェック・校正作業</div>
-          <div style="font-size:11px;color:#4a7a5e;margin-top:1px">集中作業だが比較的見通しが立てやすく、単独なら対応可能な負荷</div>
+    <!-- Step 2: AP立案 -->
+    <div id="step2" class="section-hidden">
+      <div class="modal-overlay">
+        <div class="modal">
+          <div class="alert-bar">
+            <i class="ti ti-alert-triangle" aria-hidden="true" style="font-size:15px"></i>
+            コスト乖離アラート：<strong id="ap-gap-val">8,205千円</strong>　放置3日超 — エスカレーション済
+          </div>
+          <div class="modal-title">AI分析結果と改善アクション提案</div>
+          <div class="modal-body" id="ap-body"></div>
+          <div id="ap-reason-area" style="display:none">
+            <textarea class="reason-input" id="reasonText" placeholder="却下・保留の判断理由を入力してください（必須）&#10;例：No.046は納品先の道幅制限により4t車の進入が不可のため"></textarea>
+          </div>
+          <div class="btn-row" style="margin-top:12px">
+            <button class="btn btn-primary" onclick="apAction('approve')"><i class="ti ti-check" aria-hidden="true"></i> 承認（実行）</button>
+            <button class="btn" onclick="apAction('hold')"><i class="ti ti-clock" aria-hidden="true"></i> 保留（確認中）</button>
+            <button class="btn btn-danger" onclick="apAction('reject')"><i class="ti ti-x" aria-hidden="true"></i> 却下（理由入力）</button>
+          </div>
+          <div id="ap-result" style="display:none;margin-top:12px;font-size:14px;padding:10px;border-radius:var(--radius-md)"></div>
         </div>
-      </div>
-      <div style="padding:10px 14px;background:white;display:flex;flex-wrap:wrap;gap:6px">
-        <div style="font-size:11px;color:#4a5568;font-weight:600;width:100%;margin-bottom:2px">▶ 実データ例</div>
-        <div class="ex-chip low">組版入稿（Xavier） <span>（2月・26-3-7地学）</span></div>
-        <div class="ex-chip low">KY初校出 <span>（3月・26-3-7地学）</span></div>
-        <div class="ex-chip low">初校チェック発送 <span>（3月・26-3-7地学）</span></div>
-        <div class="ex-chip low">図版出稿 <span>（各模試）</span></div>
-        <div class="ex-chip low">PDF入稿 <span>（各模試）</span></div>
-        <div class="ex-chip low">発送 <span>（各模試）</span></div>
       </div>
     </div>
 
-  </div>
+    <!-- Step 3: アクション管理 -->
+    <div id="step3" class="section-hidden">
+      <div class="panel">
+        <div class="panel-title"><i class="ti ti-list-check" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>アクション管理：現場知見のデータ化と進捗追跡</div>
+        <div id="actionList"></div>
+        <button class="btn" style="margin-top:10px" onclick="addActionLog()"><i class="ti ti-plus" aria-hidden="true"></i> 新しいアクションを追加</button>
+      </div>
+      <div class="ai-box">
+        <div class="ai-box-title"><i class="ti ti-brain" aria-hidden="true" style="font-size:14px"></i>入力された対応履歴はアクションFAQとして自動蓄積され、次回のAI提案精度向上に利用されます</div>
+        <div class="ai-box-body">現在 <strong id="faq-count">3</strong> 件のナレッジが蓄積済み。直近30日間の施策成功率：<strong id="success-rate">67%</strong></div>
+      </div>
+    </div>
 
-  <!-- Carry-over note -->
-  <div style="margin-top:12px;background:#f5f0f0;border-left:3px solid #c0a0a0;padding:9px 13px;border-radius:0 6px 6px 0;font-size:11px;line-height:1.7;color:#4a5568">
-    <b style="color:#c53030">⚡ キャリーオーバーについて</b><br>
-    〆切・原稿戻し・アップ系のイベントがある週の<b>翌週にも+2点</b>を自動加算しています。<br>
-    例：「第2稿〆（3点）」が<b>3月第4週の水曜</b>にあった場合 → <b>同週の木・金に+2点ずつ</b>、さらに<b>翌週（3月第5週）は月〜金に+1点ずつ</b>が乗る。先生からのアウトプットが返ってくると「その週は忙しい」という実態を反映しています。
-  </div>
-</div>
-
-<style>
-.ex-chip { padding:4px 9px; border-radius:12px; font-size:11px; display:inline-flex; align-items:center; gap:4px; }
-.ex-chip span { color:#a0aec0; font-size:10px; }
-.ex-chip.high { background:#edf0f3; color:#4a6278; border:1px solid #c5cfd8; }
-.ex-chip.mid  { background:#f4f0ec; color:#7a5a3e; border:1px solid #d4bfac; }
-.ex-chip.low  { background:#edf3ef; color:#3a6649; border:1px solid #b0ccb8; }
-</style>
-
-<!-- Section 1: Heatmap -->
-<div class="section">
-  <div class="section-title">
-    🗓 模試別 × 週次 負荷ヒートマップ <span style="font-size:11px;font-weight:400;color:#718096">（2026年模試向け＋2025年模試向け 合算）</span>
-  </div>
-  <div class="score-legend">
-    <span style="font-size:11px;font-weight:600;color:#4a5568;margin-right:4px">フェーズ：</span>
-    <span><div class="dot" style="background:#5b8db8"></div> 作問</span>
-    <span><div class="dot" style="background:#6aaa7a"></div> 組版・入稿</span>
-    <span><div class="dot" style="background:#d4a843"></div> 校正</span>
-    <span><div class="dot" style="background:#9a7ab8"></div> 完成・納品</span>
-    <span style="margin-left:8px;border-left:1px solid #e2e8f0;padding-left:12px;color:#a0aec0">色の濃さ＝負荷スコア</span>
-  </div>
-  <div class="heatmap-wrap" id="heatmapContainer"></div>
-</div>
-
-<!-- Section 2: Bar -->
-<div class="section">
-  <div class="section-title">
-    📈 週別 合算負荷スコア（模試スタック表示）<span style="font-size:11px;font-weight:400;color:#718096">（2026年模試向け＋2025年模試向け 合算）</span>
-  </div>
-  <div class="bar-wrap" id="barContainer"></div>
-  <div id="insightBox" class="insight-box"></div>
-</div>
-
-<!-- Section 3: Overlap -->
-<div class="section">
-  <div class="section-title">⚠️ 模試重複インジケーター（同週に複数模試が高負荷な週）</div>
-  <div id="overlapContainer"></div>
-</div>
-
-
-<!-- Section 5: Simulation -->
-<div class="section" id="simSection">
-  <div class="section-title">🔧 平準化シミュレーター <span style="font-size:11px;font-weight:400;color:#718096">模試ごとに開始週をずらして負荷がどう変わるか確認できます</span></div>
-
-  <div style="font-size:12px;color:#718096;margin-bottom:14px">
-    各模試のスライダーを動かすと、週次スコアがリアルタイムに再計算されます。<br>
-    <b style="color:#e53e3e">赤い線</b>が元のスコア、<b style="color:#38a169">緑の線</b>が調整後のスコアです。
-  </div>
-
-  <!-- スライダー群 -->
-  <div id="simSliders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:18px"></div>
-
-  <!-- 差分サマリー -->
-  <div id="simSummary" style="background:#f7fafc;border-radius:8px;padding:12px 16px;font-size:12px;margin-bottom:14px;line-height:1.8"></div>
-
-  <!-- シミュレーション折れ線グラフ -->
-  <div style="overflow-x:auto"><svg id="simSvg"></svg></div>
-</div>
-
-<!-- Section 4: Question Helper -->
-<div class="chat-section">
-  <div class="chat-header">💬 Claudeへの質問テンプレート <span>クリックでコピー → Claudeのチャット欄に貼り付けて質問できます</span></div>
-  <div style="padding:10px 18px;font-size:12px;color:#4a5568;background:#f7fafc;border-bottom:1px solid #e2e8f0;line-height:1.7">
-    💡 チップをクリックするとクリップボードにコピーされます。Claudeのチャット欄に貼り付けて送信してください。
-  </div>
-  <div class="suggestion-chips" id="chips">
-    <div class="chip" onclick="copyQ(this)">3月は忙しかった？</div>
-    <div class="chip" onclick="copyQ(this)">最も負荷が高い週は？</div>
-    <div class="chip" onclick="copyQ(this)">複数模試が重なる週を教えて</div>
-    <div class="chip" onclick="copyQ(this)">比較的余裕のある月は？</div>
-    <div class="chip" onclick="copyQ(this)">26-3-9の山場はいつ？</div>
-    <div class="chip" onclick="copyQ(this)">平準化するには何をどう調整すればいい？</div>
-    <div class="chip" onclick="copyQ(this)">〆切と会議が両方重なる最も忙しい週は？</div>
-  </div>
-  <div class="chat-input-row">
-    <input class="chat-input" id="chatInput" type="text" placeholder="質問を入力してコピー...">
-    <button class="chat-send" id="sendBtn" onclick="copyInput()">コピー</button>
-  </div>
-  <div id="copyToast" style="display:none;padding:8px 18px;font-size:12px;color:#276749;background:#f0fff4;border-top:1px solid #c6f6d5">
-    ✅ コピーしました！Claudeのチャット欄に貼り付けてください。
   </div>
 </div>
 
 <script>
-// ===================== WEEK MAP =====================
-const WEEK_MAP = {"1":{"month":12,"week_in_month":5,"label":"12月第5週"},"2":{"month":1,"week_in_month":1,"label":"1月第1週"},"3":{"month":1,"week_in_month":2,"label":"1月第2週"},"4":{"month":1,"week_in_month":3,"label":"1月第3週"},"5":{"month":1,"week_in_month":4,"label":"1月第4週"},"6":{"month":2,"week_in_month":1,"label":"2月第1週"},"7":{"month":2,"week_in_month":2,"label":"2月第2週"},"8":{"month":2,"week_in_month":3,"label":"2月第3週"},"9":{"month":2,"week_in_month":4,"label":"2月第4週"},"10":{"month":3,"week_in_month":1,"label":"3月第1週"},"11":{"month":3,"week_in_month":2,"label":"3月第2週"},"12":{"month":3,"week_in_month":3,"label":"3月第3週"},"13":{"month":3,"week_in_month":4,"label":"3月第4週"},"14":{"month":3,"week_in_month":5,"label":"3月第5週"},"15":{"month":4,"week_in_month":1,"label":"4月第1週"},"16":{"month":4,"week_in_month":2,"label":"4月第2週"},"17":{"month":4,"week_in_month":3,"label":"4月第3週"},"18":{"month":4,"week_in_month":4,"label":"4月第4週"},"19":{"month":5,"week_in_month":1,"label":"5月第1週"},"20":{"month":5,"week_in_month":2,"label":"5月第2週"},"21":{"month":5,"week_in_month":3,"label":"5月第3週"},"22":{"month":5,"week_in_month":4,"label":"5月第4週"},"23":{"month":6,"week_in_month":1,"label":"6月第1週"},"24":{"month":6,"week_in_month":2,"label":"6月第2週"},"25":{"month":6,"week_in_month":3,"label":"6月第3週"},"26":{"month":6,"week_in_month":4,"label":"6月第4週"},"27":{"month":6,"week_in_month":5,"label":"6月第5週"},"28":{"month":7,"week_in_month":1,"label":"7月第1週"},"29":{"month":7,"week_in_month":2,"label":"7月第2週"},"30":{"month":7,"week_in_month":3,"label":"7月第3週"},"31":{"month":7,"week_in_month":4,"label":"7月第4週"},"32":{"month":8,"week_in_month":1,"label":"8月第1週"},"33":{"month":8,"week_in_month":2,"label":"8月第2週"},"34":{"month":8,"week_in_month":3,"label":"8月第3週"},"35":{"month":8,"week_in_month":4,"label":"8月第4週"},"36":{"month":9,"week_in_month":1,"label":"9月第1週"},"37":{"month":9,"week_in_month":2,"label":"9月第2週"},"38":{"month":9,"week_in_month":3,"label":"9月第3週"},"39":{"month":9,"week_in_month":4,"label":"9月第4週"},"40":{"month":9,"week_in_month":5,"label":"9月第5週"},"41":{"month":10,"week_in_month":1,"label":"10月第1週"},"42":{"month":10,"week_in_month":2,"label":"10月第2週"},"43":{"month":10,"week_in_month":3,"label":"10月第3週"},"44":{"month":10,"week_in_month":4,"label":"10月第4週"},"45":{"month":11,"week_in_month":1,"label":"11月第1週"},"46":{"month":11,"week_in_month":2,"label":"11月第2週"},"47":{"month":11,"week_in_month":3,"label":"11月第3週"},"48":{"month":11,"week_in_month":4,"label":"11月第4週"},"49":{"month":12,"week_in_month":1,"label":"12月第1週"},"50":{"month":12,"week_in_month":2,"label":"12月第2週"},"51":{"month":12,"week_in_month":3,"label":"12月第3週"},"52":{"month":12,"week_in_month":4,"label":"12月第4週"}};
-
-// 2026シート=2025年の作業、2025シート=2025年の作業
-const SHEET_YEAR = {'2026': '2025年', '2025': '2025年'};
-let _currentYear = '2025年';
-
-function wLabel(w) {
-  const info = WEEK_MAP[String(w)];
-  if (!info) return `W${w}`;
-  return `${_currentYear}${info.month}月第${info.week_in_month}週`;
-}
-function wMonth(w) {
-  return WEEK_MAP[String(w)] ? WEEK_MAP[String(w)].month : null;
-}
-
-// ===================== DATA =====================
-// ── 両シート合算データ（作業年2025年） ──
-const mergedWeekly = [{"week": 4, "exam": "26-2-2基礎", "score": 3}, {"week": 4, "exam": "26-3-9", "score": 3}, {"week": 4, "exam": "26-2-2専門", "score": 3}, {"week": 5, "exam": "26-3-7 地学（新フロー）", "score": 5}, {"week": 5, "exam": "26-3-9", "score": 2}, {"week": 5, "exam": "26-2-2専門", "score": 2}, {"week": 6, "exam": "26-2-2基礎", "score": 2}, {"week": 6, "exam": "26-3-9", "score": 5}, {"week": 7, "exam": "26-3-7 地学（新フロー）", "score": 1}, {"week": 7, "exam": "26-2-2専門", "score": 2}, {"week": 7, "exam": "他予定", "score": 4}, {"week": 8, "exam": "26-3-9", "score": 2}, {"week": 8, "exam": "26-2-2基礎", "score": 3}, {"week": 8, "exam": "26-2-2専門", "score": 3}, {"week": 9, "exam": "26-3-7 地学（新フロー）", "score": 5}, {"week": 9, "exam": "26-3-9", "score": 3}, {"week": 10, "exam": "26-3-9", "score": 5}, {"week": 10, "exam": "26-3-7 地学（新フロー）", "score": 2}, {"week": 11, "exam": "26-3-9", "score": 2}, {"week": 11, "exam": "26-3-11", "score": 5}, {"week": 11, "exam": "26-3-7 地学（新フロー）", "score": 3}, {"week": 12, "exam": "26-2-2基礎", "score": 2}, {"week": 12, "exam": "26-3-7 地学（新フロー）", "score": 3}, {"week": 12, "exam": "26-3-11", "score": 3}, {"week": 13, "exam": "26-3-9", "score": 4}, {"week": 13, "exam": "26-2-2専門", "score": 2}, {"week": 13, "exam": "26-3-7 地学（新フロー）", "score": 4}, {"week": 13, "exam": "26-3-11", "score": 4}, {"week": 13, "exam": "25-2-11記述地学", "score": 2}, {"week": 14, "exam": "26-3-9", "score": 3}, {"week": 14, "exam": "27-3-7", "score": 3}, {"week": 14, "exam": "26-2-2基礎", "score": 6}, {"week": 14, "exam": "26-3-7 地学（新フロー）", "score": 1}, {"week": 15, "exam": "26-3-9", "score": 2}, {"week": 15, "exam": "26-3-7 地学（新フロー）", "score": 3}, {"week": 15, "exam": "26-3-11", "score": 2}, {"week": 15, "exam": "26-2-2専門", "score": 6}, {"week": 15, "exam": "27-3-7", "score": 2}, {"week": 15, "exam": "25-2-11記述地学", "score": 3}, {"week": 16, "exam": "26-2-2基礎", "score": 1}, {"week": 16, "exam": "25-2-11記述地学", "score": 1}, {"week": 16, "exam": "26-3-11", "score": 3}, {"week": 16, "exam": "26-2-2専門", "score": 1}, {"week": 17, "exam": "26-3-11", "score": 7}, {"week": 17, "exam": "26-2-2基礎", "score": 1}, {"week": 17, "exam": "26-3-9", "score": 4}, {"week": 17, "exam": "25-2-11記述地学", "score": 3}, {"week": 17, "exam": "26-3-7記述地学", "score": 1}, {"week": 17, "exam": "26-2-2専門", "score": 1}, {"week": 18, "exam": "26-3-11", "score": 1}, {"week": 18, "exam": "26-3-7記述地学", "score": 2}, {"week": 18, "exam": "26-3-9", "score": 5}, {"week": 18, "exam": "26-2-2基礎", "score": 1}, {"week": 18, "exam": "25-2-11記述地学", "score": 1}, {"week": 19, "exam": "26-3-9", "score": 1}, {"week": 20, "exam": "26-3-9", "score": 1}, {"week": 20, "exam": "26-3-11", "score": 3}, {"week": 20, "exam": "25-2-11記述地学", "score": 1}, {"week": 20, "exam": "26-2-2基礎", "score": 1}, {"week": 21, "exam": "26-3-9", "score": 1}, {"week": 21, "exam": "26-3-7記述地学", "score": 3}, {"week": 21, "exam": "27-3-7", "score": 3}, {"week": 22, "exam": "26-3-9", "score": 1}, {"week": 22, "exam": "26-3-11", "score": 8}, {"week": 22, "exam": "25-2-11記述地学", "score": 3}, {"week": 22, "exam": "26-3-7記述地学", "score": 3}, {"week": 22, "exam": "26-2-2基礎", "score": 3}, {"week": 23, "exam": "26-3-9", "score": 6}, {"week": 23, "exam": "26-3-11", "score": 3}, {"week": 23, "exam": "26-3-7記述地学", "score": 2}, {"week": 23, "exam": "25-2-11記述地学", "score": 3}, {"week": 24, "exam": "26-3-9", "score": 4}, {"week": 24, "exam": "25-2-11記述地学", "score": 1}, {"week": 24, "exam": "27-3-7", "score": 3}, {"week": 25, "exam": "27-3-7", "score": 1}, {"week": 25, "exam": "25-2-11記述地学", "score": 2}, {"week": 25, "exam": "26-3-7記述地学", "score": 5}, {"week": 25, "exam": "26-3-9", "score": 1}, {"week": 25, "exam": "26-3-11", "score": 3}, {"week": 26, "exam": "26-3-9", "score": 1}, {"week": 26, "exam": "26-3-11", "score": 3}, {"week": 26, "exam": "25-2-11記述地学", "score": 3}, {"week": 26, "exam": "27-3-7", "score": 2}, {"week": 27, "exam": "26-3-7記述地学", "score": 3}, {"week": 27, "exam": "26-2-2基礎", "score": 2}, {"week": 27, "exam": "26-3-11", "score": 4}, {"week": 27, "exam": "27-3-7", "score": 2}, {"week": 28, "exam": "25-2-11記述地学", "score": 2}, {"week": 28, "exam": "26-3-7記述地学", "score": 1}, {"week": 28, "exam": "26-3-11", "score": 1}, {"week": 28, "exam": "27-3-7", "score": 3}, {"week": 29, "exam": "26-2-2基礎", "score": 1}, {"week": 29, "exam": "27-3-7", "score": 1}, {"week": 29, "exam": "26-3-7記述地学", "score": 2}, {"week": 29, "exam": "26-3-11", "score": 1}, {"week": 30, "exam": "26-2-2基礎", "score": 2}, {"week": 30, "exam": "25-2-11記述地学", "score": 3}, {"week": 31, "exam": "25-2-11記述地学", "score": 5}, {"week": 31, "exam": "26-3-7記述地学", "score": 3}, {"week": 31, "exam": "27-3-7", "score": 1}, {"week": 31, "exam": "26-3-11", "score": 3}, {"week": 32, "exam": "25-2-11記述地学", "score": 4}, {"week": 32, "exam": "26-3-7記述地学", "score": 5}, {"week": 32, "exam": "26-3-11", "score": 1}, {"week": 32, "exam": "27-3-7", "score": 2}, {"week": 33, "exam": "26-3-11", "score": 3}, {"week": 33, "exam": "26-2-2基礎", "score": 1}, {"week": 34, "exam": "26-3-11", "score": 2}, {"week": 34, "exam": "25-2-11記述地学", "score": 3}, {"week": 34, "exam": "26-2-2基礎", "score": 1}, {"week": 34, "exam": "27-3-7", "score": 3}, {"week": 35, "exam": "26-2-2基礎", "score": 3}, {"week": 35, "exam": "25-3-10 記述地学", "score": 3}, {"week": 35, "exam": "26-3-7記述地学", "score": 4}, {"week": 36, "exam": "26-2-2基礎", "score": 5}, {"week": 36, "exam": "27-3-7", "score": 1}, {"week": 36, "exam": "26-3-7記述地学", "score": 4}, {"week": 37, "exam": "27-3-7", "score": 3}, {"week": 37, "exam": "26-2-2基礎", "score": 1}, {"week": 38, "exam": "26-3-7記述地学", "score": 4}, {"week": 38, "exam": "26-2-2基礎", "score": 1}, {"week": 38, "exam": "25-2-11記述地学", "score": 3}, {"week": 39, "exam": "25-3-10 記述地学", "score": 3}, {"week": 39, "exam": "26-3-7記述地学", "score": 1}, {"week": 40, "exam": "27-3-7", "score": 1}, {"week": 40, "exam": "26-2-2基礎", "score": 1}, {"week": 41, "exam": "26-3-7記述地学", "score": 3}, {"week": 41, "exam": "26-2-2基礎", "score": 3}, {"week": 42, "exam": "26-3-7記述地学", "score": 4}, {"week": 42, "exam": "27-3-7", "score": 3}, {"week": 42, "exam": "26-2-2マーク専門", "score": 2}, {"week": 42, "exam": "25-2-11記述地学", "score": 3}, {"week": 42, "exam": "26-2-2基礎", "score": 3}, {"week": 43, "exam": "26-2-2マーク基礎", "score": 2}, {"week": 43, "exam": "26-3-7記述地学", "score": 4}, {"week": 43, "exam": "26-2-2基礎", "score": 1}, {"week": 44, "exam": "26-2-2基礎", "score": 4}, {"week": 45, "exam": "26-2-2基礎", "score": 1}, {"week": 45, "exam": "26-3-7記述地学", "score": 1}, {"week": 46, "exam": "26-3-9マーク", "score": 2}, {"week": 47, "exam": "26-3-7記述地学", "score": 1}, {"week": 48, "exam": "26-2-2マーク基礎", "score": 3}, {"week": 48, "exam": "26-2-2マーク専門", "score": 3}, {"week": 49, "exam": "26-2-2マーク専門", "score": 1}, {"week": 49, "exam": "26-3-7記述地学", "score": 2}, {"week": 50, "exam": "26-3-7記述地学", "score": 1}, {"week": 51, "exam": "26-3-9マーク", "score": 5}, {"week": 51, "exam": "26-3-7記述地学", "score": 4}, {"week": 52, "exam": "26-3-7記述地学", "score": 4}];
-const mergedTotal  = [{"week": 4, "score": 9}, {"week": 5, "score": 35}, {"week": 6, "score": 13}, {"week": 7, "score": 15}, {"week": 8, "score": 9}, {"week": 9, "score": 22}, {"week": 10, "score": 25}, {"week": 11, "score": 24}, {"week": 12, "score": 23}, {"week": 13, "score": 33}, {"week": 14, "score": 30}, {"week": 15, "score": 31}, {"week": 16, "score": 26}, {"week": 17, "score": 30}, {"week": 18, "score": 35}, {"week": 19, "score": 6}, {"week": 20, "score": 6}, {"week": 21, "score": 13}, {"week": 22, "score": 44}, {"week": 23, "score": 45}, {"week": 24, "score": 23}, {"week": 25, "score": 32}, {"week": 26, "score": 27}, {"week": 27, "score": 24}, {"week": 28, "score": 17}, {"week": 29, "score": 12}, {"week": 30, "score": 11}, {"week": 31, "score": 30}, {"week": 32, "score": 37}, {"week": 33, "score": 18}, {"week": 34, "score": 20}, {"week": 35, "score": 29}, {"week": 36, "score": 27}, {"week": 37, "score": 14}, {"week": 38, "score": 16}, {"week": 39, "score": 16}, {"week": 40, "score": 7}, {"week": 41, "score": 14}, {"week": 42, "score": 41}, {"week": 43, "score": 34}, {"week": 44, "score": 15}, {"week": 45, "score": 7}, {"week": 46, "score": 3}, {"week": 47, "score": 1}, {"week": 48, "score": 18}, {"week": 49, "score": 14}, {"week": 50, "score": 1}, {"week": 51, "score": 17}, {"week": 52, "score": 20}, {"week": 1, "score": 5}, {"week": 2, "score": 0}, {"week": 3, "score": 0}];
-const allExams     = ["25-2-11記述地学", "25-3-10 記述地学", "26-2-2マーク基礎", "26-2-2マーク専門", "26-2-2基礎", "26-2-2専門", "26-3-7 地学（新フロー）", "26-3-7記述地学", "26-3-9", "26-3-9マーク", "26-3-11", "27-3-7", "他予定"]; // 模試開催日早い順
-const examColors   = {"25-2-11記述地学": "#7a8fa6", "25-3-10 記述地学": "#9aabb8", "26-2-2マーク基礎": "#a0876e", "26-2-2マーク専門": "#b89e8a", "26-2-2基礎": "#7a9e8a", "26-2-2専門": "#96b5a4", "26-3-7 地学（新フロー）": "#6b8cae", "26-3-7記述地学": "#8da8c2", "26-3-9": "#8e7aaa", "26-3-9マーク": "#a896be", "26-3-11": "#8a8a8a", "27-3-7": "#b07070", "他予定": "#c8c8c8"}; // くすみグレー系パレット
-const MAX_TOTAL    = 45;
-
-
-// ===================== PHASE MAP =====================
-// フェーズ: 作問／組版入稿／校正／完成
-const phaseMap = {"4_26-2-2基礎": "作問", "4_26-3-9": "作問", "4_26-2-2専門": "作問", "5_26-3-7 地学（新フロー）": "組版入稿", "5_26-3-9": "作問", "5_26-2-2専門": "作問", "6_26-2-2基礎": "作問", "6_26-3-9": "作問", "7_26-3-7 地学（新フロー）": "組版入稿", "7_26-2-2専門": "作問", "7_他予定": "作問", "8_26-3-9": "作問", "8_26-2-2基礎": "作問", "8_26-2-2専門": "作問", "9_26-3-7 地学（新フロー）": "校正", "9_26-3-9": "作問", "10_26-3-9": "組版入稿", "10_26-3-7 地学（新フロー）": "校正", "11_26-3-9": "校正", "11_26-3-11": "作問", "11_26-3-7 地学（新フロー）": "校正", "12_26-2-2基礎": "作問", "12_26-3-7 地学（新フロー）": "校正", "12_26-3-11": "作問", "13_26-3-9": "組版入稿", "13_26-2-2専門": "作問", "13_26-3-7 地学（新フロー）": "校正", "13_26-3-11": "校正", "13_25-2-11記述地学": "作問", "14_26-3-9": "校正", "14_27-3-7": "校正", "14_26-2-2基礎": "作問", "14_26-3-7 地学（新フロー）": "完成", "15_26-3-9": "校正", "15_26-3-7 地学（新フロー）": "完成", "15_26-3-11": "作問", "15_26-2-2専門": "組版入稿", "15_27-3-7": "作問", "15_25-2-11記述地学": "作問", "16_26-2-2基礎": "組版入稿", "16_26-3-11": "作問", "16_26-2-2専門": "組版入稿", "16_25-2-11記述地学": "校正", "17_26-3-11": "組版入稿", "17_26-2-2基礎": "組版入稿", "17_26-3-9": "組版入稿", "17_26-2-2専門": "組版入稿", "17_25-2-11記述地学": "校正", "17_26-3-7記述地学": "校正", "18_26-3-9": "完成", "18_26-3-11": "組版入稿", "18_26-2-2基礎": "校正", "18_26-3-7記述地学": "作問", "18_25-2-11記述地学": "組版入稿", "19_26-3-9": "組版入稿", "20_26-3-9": "組版入稿", "20_26-3-11": "校正", "20_26-2-2基礎": "組版入稿", "20_25-2-11記述地学": "校正", "21_26-3-9": "作問", "21_27-3-7": "作問", "21_26-3-7記述地学": "作問", "22_26-3-9": "校正", "22_26-3-11": "校正", "22_26-2-2基礎": "組版入稿", "22_25-2-11記述地学": "校正", "22_26-3-7記述地学": "作問", "23_26-3-9": "校正", "23_26-3-11": "組版入稿", "23_26-3-7記述地学": "作問", "23_25-2-11記述地学": "校正", "24_26-3-9": "校正", "24_27-3-7": "作問", "24_25-2-11記述地学": "校正", "25_27-3-7": "校正", "25_26-3-9": "校正", "25_26-3-11": "組版入稿", "25_25-2-11記述地学": "校正", "25_26-3-7記述地学": "校正", "26_26-3-9": "完成", "26_26-3-11": "組版入稿", "26_27-3-7": "作問", "26_25-2-11記述地学": "校正", "27_26-2-2基礎": "作問", "27_26-3-11": "校正", "27_27-3-7": "作問", "27_26-3-7記述地学": "作問", "28_26-3-11": "校正", "28_27-3-7": "作問", "28_25-2-11記述地学": "完成", "28_26-3-7記述地学": "作問", "29_26-2-2基礎": "組版入稿", "29_27-3-7": "校正", "29_26-3-11": "校正", "29_26-3-7記述地学": "作問", "30_26-2-2基礎": "校正", "30_25-2-11記述地学": "完成", "31_27-3-7": "校正", "31_26-3-11": "校正", "31_25-2-11記述地学": "校正", "31_26-3-7記述地学": "作問", "32_26-3-11": "校正", "32_27-3-7": "作問", "32_25-2-11記述地学": "校正", "32_26-3-7記述地学": "校正", "33_26-3-11": "校正", "33_26-2-2基礎": "組版入稿", "34_26-3-11": "完成", "34_26-2-2基礎": "組版入稿", "34_27-3-7": "作問", "34_25-2-11記述地学": "校正", "35_26-2-2基礎": "組版入稿", "35_25-3-10 記述地学": "組版入稿", "35_26-3-7記述地学": "作問", "36_26-3-9": "作問", "36_26-2-2基礎": "校正", "36_27-3-7": "組版入稿", "36_26-3-7記述地学": "組版入稿", "37_27-3-7": "校正", "37_26-2-2基礎": "組版入稿", "38_26-2-2基礎": "校正", "38_26-3-7記述地学": "組版入稿", "38_25-2-11記述地学": "組版入稿", "40_27-3-7": "組版入稿", "40_26-2-2基礎": "校正", "40_26-3-9マーク": "作問", "40_25-3-10 記述地学": "完成", "41_26-2-2基礎": "校正", "41_26-3-7記述地学": "校正", "41_25-3-10 記述地学": "完成", "42_27-3-7": "組版入稿", "42_26-2-2基礎": "校正", "42_26-3-7記述地学": "校正", "42_26-2-2マーク専門": "作問", "42_25-2-11記述地学": "組版入稿", "43_26-2-2基礎": "校正", "43_26-2-2マーク基礎": "作問", "43_26-3-7記述地学": "組版入稿", "43_25-2-11記述地学": "完成", "44_26-2-2基礎": "校正", "44_25-2-11記述地学": "完成", "45_26-2-2基礎": "完成", "45_26-3-7記述地学": "組版入稿", "39_26-3-7記述地学": "完成", "39_25-3-10 記述地学": "組版入稿", "46_26-3-9マーク": "作問", "47_26-3-7記述地学": "作問", "48_26-2-2マーク基礎": "作問", "48_26-2-2マーク専門": "作問", "49_26-2-2マーク専門": "校正", "49_26-3-7記述地学": "作問", "50_26-3-7記述地学": "校正", "51_26-3-9マーク": "作問", "51_26-3-7記述地学": "組版入稿", "52_26-3-7記述地学": "校正"};
-
-const PHASE_COLORS = {
-  '作問':   { fill: '#5b8db8', text: 'white',   label: '作問' },
-  '組版入稿': { fill: '#6aaa7a', text: 'white',   label: '組版・入稿' },
-  '校正':   { fill: '#d4a843', text: 'white',   label: '校正' },
-  '完成':   { fill: '#9a7ab8', text: 'white',   label: '完成・納品' },
+const centers = {
+  yashio:{
+    name:'八潮センター',
+    actual:50438,theory:42233,gap:8205,gapRate:16.3,
+    actualSubLabel:'前月比 +14.0%', theorySubLabel:'前月比 +13.5%',
+    cars:'1,568台', carsSub:'軽487 / 2-3t 1,026 / 4t 55',
+    lightDep:'31%', unitRatio:'119%',
+    vehicles:[
+      {no:'No.062',type:'軽',theory:890,days:25,hours:13.2,status:'high'},
+      {no:'No.063',type:'軽',theory:761,days:22,hours:12.7,status:'high'},
+      {no:'No.065',type:'軽',theory:893,days:26,hours:12.5,status:'mid'},
+      {no:'No.058',type:'軽',theory:900,days:29,hours:11.0,status:'mid'},
+      {no:'No.061',type:'軽',theory:938,days:31,hours:10.7,status:'ok'},
+      {no:'No.048',type:'軽',theory:822,days:27,hours:11.0,status:'ok'},
+      {no:'No.083',type:'軽',theory:690,days:23,hours:10.6,status:'ok'},
+      {no:'No.088',type:'軽',theory:471,days:23,hours:5.9,status:'high'},
+    ],
+    comp:[
+      {type:'軽',count:487,costPct:31},
+      {type:'2〜3t',count:1026,costPct:62},
+      {type:'4t',count:55,costPct:7},
+    ],
+    aiAnalysis:'No.062・No.063で運行時間が日平均13h超と突出。理論コスト（1時間当たり）との乖離が慢性化しており、両車両の稼働パターン見直しが優先課題です。No.088は稼働日数23日に対し運行時間5.9hと短く、稼働効率の低さが示唆されます。',
+    aiVehicle:'配車台数の31%が軽貨物ですが、2〜3t車が台数・コスト比率ともに主力。軽貨物の1時間当たり理論コストは2〜3t車と同水準（2,052円/h）のため、走行時間が長い軽貨物の便を2〜3t車に置き換えることでコスト効率が改善する可能性があります。',
+    hypos:[
+      {title:'No.062・No.063の運行時間超過が構造的',body:'両車両の運行時間（日平均13h超）は理論値を継続的に上回っています。担当エリアの配送先数・距離・時間指定の実態を確認し、便の分割または配送先の再配分が必要か判断してください。端末No単位で担当エリアの制約はありますか？'},
+      {title:'No.088の稼働効率が低い（5.9h/日）',body:'稼働日数23日に対し運行時間が5.9h/日と短く、空き時間が多い状態です。他車両からの物量移管により稼働率を引き上げられる可能性があります。ただし、温度帯（冷凍/冷蔵）や担当エリアの制約はありますか？'},
+    ],
+    apBody:'No.062・No.063の運行時間超過（13h超/日）および No.088の低稼働（5.9h/日）を同時検知。\n\n【提案AP】No.088の空き時間にNo.062またはNo.063の一部配送先を移管し、3車両の稼働時間を平準化してください。理論コスト試算ベースで月間約380千円の削減が見込まれます。',
+  },
+  utsunomiya:{
+    name:'宇都宮センター',
+    actual:38200,theory:34500,gap:3700,gapRate:10.7,
+    actualSubLabel:'前月比 +8.2%', theorySubLabel:'前月比 +7.9%',
+    cars:'1,102台', carsSub:'軽612 / 2-3t 450 / 4t 40',
+    lightDep:'56%', unitRatio:'111%',
+    vehicles:[
+      {no:'No.011',type:'軽',theory:710,days:24,hours:12.1,status:'high'},
+      {no:'No.015',type:'軽',theory:680,days:22,hours:11.8,status:'mid'},
+      {no:'No.023',type:'2〜3t',theory:920,days:26,hours:9.4,status:'ok'},
+      {no:'No.031',type:'2〜3t',theory:880,days:25,hours:8.9,status:'ok'},
+      {no:'No.007',type:'軽',theory:310,days:12,hours:7.2,status:'high'},
+    ],
+    comp:[
+      {type:'軽',count:612,costPct:56},
+      {type:'2〜3t',count:450,costPct:39},
+      {type:'4t',count:40,costPct:5},
+    ],
+    aiAnalysis:'No.011で運行時間12.1h/日が継続。積雪期の迂回ルートが常態化している可能性があります。No.007は稼働日数12日と少なく、月後半の稼働が確認できません。',
+    aiVehicle:'軽貨物が台数の56%を占め、コスト比率も同水準。2〜3t車の稼働効率は良好なため、軽貨物からの移管余地を検討することを推奨します。',
+    hypos:[
+      {title:'No.011の運行時間超過が継続（12.1h/日）',body:'直近3ヶ月で同様の傾向が続いています。担当エリアで迂回が発生しているか、または配送先数が過多になっていないか確認してください。'},
+    ],
+    apBody:'No.011の運行時間超過が3ヶ月継続。\n\n【提案AP】No.011の担当エリアを見直し、一部配送先をNo.015またはNo.023に移管してください。月間約180千円の削減が見込まれます。',
+  },
+  omiya:{
+    name:'大宮センター',
+    actual:62100,theory:58400,gap:3700,gapRate:6.3,
+    actualSubLabel:'前月比 +5.1%', theorySubLabel:'前月比 +4.8%',
+    cars:'2,044台', carsSub:'軽1,012 / 2-3t 890 / 4t 142',
+    lightDep:'50%', unitRatio:'106%',
+    vehicles:[
+      {no:'No.041',type:'4t',theory:1240,days:27,hours:9.1,status:'mid'},
+      {no:'No.038',type:'2〜3t',theory:980,days:26,hours:8.8,status:'ok'},
+      {no:'No.055',type:'軽',theory:760,days:24,hours:11.2,status:'mid'},
+      {no:'No.019',type:'軽',theory:720,days:23,hours:10.9,status:'ok'},
+      {no:'No.062',type:'軽',theory:690,days:22,hours:10.4,status:'ok'},
+      {no:'No.071',type:'2〜3t',theory:890,days:25,hours:8.2,status:'ok'},
+    ],
+    comp:[
+      {type:'軽',count:1012,costPct:35},
+      {type:'2〜3t',count:890,costPct:52},
+      {type:'4t',count:142,costPct:13},
+    ],
+    aiAnalysis:'全センター中最も乖離率が低く安定した水準。No.041（4t車）の稼働日数27日・運行時間9.1hは理論値と概ね一致。No.055で軽微な運行時間超過が継続しており、局所的な確認が必要です。',
+    aiVehicle:'4t車の比率が他センターより高く、車両単位の輸送効率が良好。現在の車両構成を維持しつつ、No.055の担当エリアを精査することで乖離をさらに圧縮できる見込みです。',
+    hypos:[
+      {title:'No.055の軽微な運行時間超過が継続',body:'直近4ヶ月で月平均+0.8hの超過が積み上がっています。担当エリアの配送先指定時間と実走行時間のずれを確認してください。'},
+    ],
+    apBody:'No.055の軽微な超過が累積。\n\n【提案AP】No.055の担当配送先のうち、時間指定が厳しい2〜3件をNo.071へ移管することで月間約90千円の最適化が見込まれます。',
+  },
+  chiba:{
+    name:'千葉センター',
+    actual:44300,theory:41800,gap:2500,gapRate:5.9,
+    actualSubLabel:'前月比 +3.8%', theorySubLabel:'前月比 +3.5%',
+    cars:'1,380台', carsSub:'軽812 / 2-3t 520 / 4t 48',
+    lightDep:'59%', unitRatio:'106%',
+    vehicles:[
+      {no:'No.033',type:'軽',theory:810,days:26,hours:10.8,status:'ok'},
+      {no:'No.028',type:'2〜3t',theory:930,days:27,hours:9.2,status:'ok'},
+      {no:'No.045',type:'軽',theory:750,days:24,hours:10.5,status:'ok'},
+      {no:'No.017',type:'軽',theory:690,days:23,hours:10.1,status:'ok'},
+      {no:'No.052',type:'2〜3t',theory:870,days:25,hours:8.9,status:'mid'},
+    ],
+    comp:[
+      {type:'軽',count:812,costPct:46},
+      {type:'2〜3t',count:520,costPct:48},
+      {type:'4t',count:48,costPct:6},
+    ],
+    aiAnalysis:'乖離率5.9%は全センター中2番目の低水準。各車両の運行時間はほぼ理論値内に収まっています。No.052で軽微な超過傾向がありますが、構造的な問題ではなく月次の変動範囲内と推測されます。',
+    aiVehicle:'軽貨物と2〜3t車がほぼ同比率で安定した構成。現状維持が最善ですが、軽貨物の運行時間が10h超の便が複数あり、2〜3t車への切り替えによる時間短縮余地があります。',
+    hypos:[
+      {title:'No.052の運行時間が徐々に増加',body:'3ヶ月前比で+0.6h/日の増加が確認されています。担当エリアの配送先増加、または経路変更が発生していないか確認してください。'},
+    ],
+    apBody:'No.052の緩やかな超過傾向を検知。\n\n【提案AP】No.052の担当エリアを現状維持しつつ、翌月も同様の傾向が続く場合は配送先の再配分を実施してください。現時点での期待削減額：月間約80千円。',
+  },
+  kawasaki:{
+    name:'川崎センター',
+    actual:71500,theory:60200,gap:11300,gapRate:18.8,
+    actualSubLabel:'前月比 +19.2%', theorySubLabel:'前月比 +12.1%',
+    cars:'2,210台', carsSub:'軽1,380 / 2-3t 720 / 4t 110',
+    lightDep:'62%', unitRatio:'119%',
+    vehicles:[
+      {no:'No.008',type:'軽',theory:1020,days:28,hours:14.1,status:'high'},
+      {no:'No.014',type:'軽',theory:980,days:27,hours:13.8,status:'high'},
+      {no:'No.021',type:'軽',theory:940,days:26,hours:13.5,status:'high'},
+      {no:'No.003',type:'2〜3t',theory:1180,days:29,hours:10.2,status:'mid'},
+      {no:'No.037',type:'軽',theory:420,days:16,hours:6.1,status:'high'},
+      {no:'No.051',type:'2〜3t',theory:1050,days:27,hours:9.8,status:'ok'},
+    ],
+    comp:[
+      {type:'軽',count:1380,costPct:62},
+      {type:'2〜3t',count:720,costPct:32},
+      {type:'4t',count:110,costPct:6},
+    ],
+    aiAnalysis:'乖離率18.8%は全センター中最悪。No.008・No.014・No.021の3車両で運行時間が13〜14h/日と突出しており、乖離の主因と推定されます。都市部特有の渋滞・駐停車制限が走行時間を押し上げている可能性が高い。No.037は稼働日数16日と少なく、稼働率の低さも課題です。',
+    aiVehicle:'軽貨物が台数62%・コスト比率62%と他センターより高く、かつ運行時間が長い。都市部では軽貨物の機動性メリットが渋滞によって相殺されており、夜間配送への移行または2〜3t車への一部切り替えを検討すべき水準です。',
+    hypos:[
+      {title:'No.008・No.014・No.021の運行時間が構造的に超過',body:'3車両とも13h超が継続。担当エリアでの渋滞・荷待ち・指定時間の実態調査を先行してください。夜間配送への移行が有効か判断するため、現在の配送時間帯データを確認する必要があります。'},
+      {title:'No.037の低稼働（16日/月・6.1h/日）',body:'月前半の稼働が確認できません。車両整備・ドライバー不足・需要減少のいずれかが原因と推測されます。稼働していない日の理由を確認してください。'},
+    ],
+    apBody:'3車両の運行時間超過（13〜14h/日）が全センター最悪の乖離率の主因。\n\n【提案AP①】No.008・No.014・No.021の担当配送先を全数棚卸しし、時間指定が17時以降の納品先をNo.037の夜間便へ移管する試験運用を来月より開始してください。月間▲600千円が目標。\n\n【提案AP②】No.037の非稼働日の原因を確認し、稼働率70%以上を目標に改善計画を立案してください。',
+  }
 };
 
-function getPhase(week, exam) {
-  return phaseMap[`${week}_${exam}`] || null;
+let currentCenter = 'yashio';
+let actionLogs = [
+  {title:'No.062・No.063の運行時間超過の原因究明',checked:['confirm','root'],next:false,memo:'現場入力：担当エリアに時間指定が集中する納品先が複数あり。来月より配送先の再配分を調整予定。'},
+  {title:'No.088の低稼働改善（稼働時間5.9h→目標8h）',checked:['confirm'],next:false,memo:''},
+  {title:'軽貨物→2〜3t車への一部移管計画の策定',checked:[],next:false,memo:''},
+];
+let constraints = ['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
+
+function fmt(n){return n.toLocaleString()+'千円';}
+function fmtK(n){return (n/1000).toFixed(0)+'千円';}
+
+function renderVehicleTable(cid){
+  const c = centers[cid];
+  const rows = c.vehicles.map(v=>{
+    const badgeCls = v.status==='high'?'badge-danger':v.status==='mid'?'badge-warn':'badge-ok';
+    const badgeTxt = v.status==='high'?'要確認':v.status==='mid'?'注意':'正常';
+    const barW = Math.round(v.hours/15*100);
+    return `<tr>
+      <td style="font-weight:500">${v.no}</td>
+      <td>${v.type}</td>
+      <td>${v.theory.toLocaleString()}円</td>
+      <td>${v.days}日</td>
+      <td>
+        <span class="bar-inline" style="width:${barW}px;background:${v.status==='high'?'#E24B4A':v.status==='mid'?'#EF9F27':'#378ADD'}"></span>
+        ${v.hours}h
+      </td>
+      <td><span class="badge ${badgeCls}">${badgeTxt}</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('vehicleTableBody').innerHTML = rows;
 }
 
-// ===================== OVERLAP MARKERS =====================
-// type: 'high'=〆切重複, 'mid'=会議重複, 'both'=両方
-const weekMarkers = {"4": {"type": "high", "high_exams": ["26-2-2専門", "26-3-9", "26-2-2基礎"], "mid_exams": [], "high_events": ["第２稿〆", "第一稿〆", "第２稿〆"], "mid_events": []}, "5": {"type": "mid", "high_exams": ["26-3-7 地学（新フロー）"], "mid_exams": ["26-2-2専門", "26-3-9", "26-3-7 地学（新フロー）"], "high_events": ["修正原稿アップ"], "mid_events": ["赤入れ面談", "作問会議①（対面）10時～", "作問会議19：30～"]}, "6": {"type": "mid", "high_exams": ["26-3-9"], "mid_exams": ["26-3-9", "26-2-2基礎"], "high_events": ["第2稿〆"], "mid_events": ["作問会議（13：00～）", "プレ審査"]}, "7": {"type": "mid", "high_exams": [], "mid_exams": ["26-2-2専門", "他予定"], "high_events": [], "mid_events": ["作問会議19：30～", "11月回審査会議，1月回作問会議", "1月回作問会議"]}, "8": {"type": "high", "high_exams": ["26-2-2専門", "26-2-2基礎"], "mid_exams": ["26-3-9"], "high_events": ["第3稿〆", "第3稿〆"], "mid_events": ["作問会議"]}, "9": {"type": "high", "high_exams": ["26-3-9", "26-3-7 地学（新フロー）"], "mid_exams": [], "high_events": ["0稿戻し", "第3稿，KK〆"], "mid_events": []}, "11": {"type": "high", "high_exams": ["26-3-11", "26-3-7 地学（新フロー）"], "mid_exams": ["26-3-11"], "high_events": ["原稿〆", "初校チェック〆"], "mid_events": ["作問会議①"]}, "12": {"type": "high", "high_exams": ["26-3-11", "26-3-7 地学（新フロー）"], "mid_exams": ["26-2-2基礎"], "high_events": ["初校戻し（MM,KK,KY)", "第2稿〆"], "mid_events": ["審査会議"]}, "13": {"type": "mid", "high_exams": ["26-3-7 地学（新フロー）"], "mid_exams": ["26-3-11", "26-2-2専門", "26-3-9", "25-2-11記述地学"], "high_events": ["再校戻し"], "mid_events": ["審査会議", "プレ審査発送", "プレ審査", "難易調整方針会議依頼", "合同審査"]}, "14": {"type": "mid", "high_exams": ["26-2-2基礎"], "mid_exams": ["26-3-9", "27-3-7"], "high_events": ["KK,MM〆", "原稿整理"], "mid_events": ["企画会議", "難易調整会議"]}, "15": {"type": "both", "high_exams": ["26-2-2専門", "25-2-11記述地学", "26-3-7 地学（新フロー）"], "mid_exams": ["26-3-11", "27-3-7"], "high_events": ["印刷再校戻", "KK,MM〆", "原稿整理，図版", "KK〆"], "mid_events": ["作問会議②", "依頼会議"]}, "17": {"type": "high", "high_exams": ["26-3-11", "26-3-9", "25-2-11記述地学"], "mid_exams": [], "high_events": ["原稿整理，図版出稿（基礎ＭＭ）", "赤入れ原稿アップ", "プレアップ（基礎だけ）", "出稿前チェック〆"], "mid_events": []}, "18": {"type": "mid", "high_exams": ["26-3-9"], "mid_exams": ["26-3-9", "26-3-7記述地学"], "high_events": ["内外さん初校戻し依頼"], "mid_events": ["赤入れ面談", "依頼会議＠web"]}, "21": {"type": "high", "high_exams": ["26-3-7記述地学", "27-3-7"], "mid_exams": [], "high_events": ["第1稿〆", "【流用】選定問題連絡〆"], "mid_events": []}, "22": {"type": "high", "high_exams": ["26-3-11", "25-2-11記述地学", "26-3-7記述地学", "26-2-2基礎"], "mid_exams": ["26-3-11"], "high_events": ["FC〆", "プレ問題アップ", "組版初校チェック〆", "第1稿〆（流用も）"], "mid_events": ["調整方針相談,会議資料発送", "難易調整会議"]}, "23": {"type": "high", "high_exams": ["26-3-9", "25-2-11記述地学"], "mid_exams": ["26-3-7記述地学"], "high_events": ["初校チェック〆", "初校戻", "組版初校戻"], "mid_events": ["作問会議①@web"]}, "24": {"type": "high", "high_exams": ["26-3-9", "27-3-7"], "mid_exams": [], "high_events": ["再校戻", "第2稿〆"], "mid_events": []}, "25": {"type": "high", "high_exams": ["26-3-11", "26-3-7記述地学"], "mid_exams": ["26-3-7記述地学"], "high_events": ["赤入れ原稿アップ", "第２稿〆"], "mid_events": ["郵送プレ審査発送"]}, "26": {"type": "mid", "high_exams": ["25-2-11記述地学"], "mid_exams": ["26-3-11", "27-3-7"], "high_events": ["組版再校チェック〆"], "mid_events": ["赤入れ面談", "作問会議①？"]}, "27": {"type": "high", "high_exams": ["26-3-11", "26-3-7記述地学"], "mid_exams": ["27-3-7"], "high_events": ["内外さん初校戻し依頼", "郵送プレ〆"], "mid_events": ["作問会議②予備"]}, "31": {"type": "high", "high_exams": ["26-3-11", "26-3-7記述地学", "25-2-11記述地学"], "mid_exams": ["25-2-11記述地学"], "high_events": ["初稿戻", "第3稿〆?", "初校戻"], "mid_events": ["赤入れ面談"]}, "32": {"type": "both", "high_exams": ["26-3-7記述地学", "25-2-11記述地学"], "mid_exams": ["26-3-7記述地学", "27-3-7"], "high_events": ["再校戻", "原稿整理〆"], "mid_events": ["審査会議", "合同審査資料発送"]}, "34": {"type": "high", "high_exams": ["27-3-7", "25-2-11記述地学"], "mid_exams": [], "high_events": ["3稿，KK〆", "原稿整理↓", "面付出戻"], "mid_events": []}, "35": {"type": "high", "high_exams": ["25-3-10 記述地学", "26-2-2基礎"], "mid_exams": ["26-3-7記述地学"], "high_events": ["赤入れ原稿アップ", "たたき基準UP〆"], "mid_events": ["合同審査", "合同審査"]}, "36": {"type": "high", "high_exams": ["26-3-7記述地学", "26-2-2基礎"], "mid_exams": ["26-2-2基礎"], "high_events": ["内外さん初校戻し依頼", "MM〆切"], "mid_events": ["赤入れ面談"]}, "38": {"type": "high", "high_exams": ["26-3-7記述地学", "25-2-11記述地学"], "mid_exams": [], "high_events": ["KK〆切", "たたき基準UP〆"], "mid_events": []}, "41": {"type": "high", "high_exams": ["26-3-7記述地学", "26-2-2基礎"], "mid_exams": [], "high_events": ["初校チェック〆", "チェック〆"], "mid_events": []}, "42": {"type": "high", "high_exams": ["25-2-11記述地学", "26-3-7記述地学", "27-3-7", "26-2-2基礎"], "mid_exams": ["26-2-2マーク専門"], "high_events": ["プレアップここら辺？", "初校戻し", "（ファクトチェック〆）", "暫定版②UP16時〆"], "mid_events": ["依頼会議"]}, "48": {"type": "high", "high_exams": ["26-2-2マーク基礎", "26-2-2マーク専門"], "mid_exams": [], "high_events": ["第１稿〆", "第１稿〆"], "mid_events": []}, "51": {"type": "high", "high_exams": ["26-3-9マーク", "26-3-7記述地学"], "mid_exams": ["26-3-9マーク"], "high_events": ["ＢＣ　第１稿（０稿）〆？", "図版修正〆"], "mid_events": ["0稿会議（オンライン）"]}};
-
-// ===================== HEATMAP =====================
-function buildHeatmap() {
-  const colors = examColors;
-  const exams  = allExams.filter(e => e !== '他予定');
-  const allWeeks = [...new Set(mergedWeekly.map(d=>d.week))].sort((a,b)=>a-b);
-
-  const lookup = {};
-  mergedWeekly.forEach(d=>{
-    if(!lookup[d.exam]) lookup[d.exam]={};
-    lookup[d.exam][d.week] = (lookup[d.exam][d.week]||0) + d.score;
-  });
-  const maxScore = Math.max(...mergedWeekly.map(d=>d.score), 1);
-
-  const container = document.getElementById('heatmapContainer');
-  container.innerHTML = '';
-
-  const CELL=20, GAP=2, LABEL_W=140;
-  const svgW = LABEL_W + allWeeks.length*(CELL+GAP)+20;
-  const totalRows = exams.length + 1;
-  const svgH = 40 + totalRows*(CELL+GAP) + 20;
-
-  const svg = d3.select(container).append('svg').attr('width',svgW).attr('height',svgH);
-
-  // 年ラベル（左端）
-  svg.append('text').attr('x',0).attr('y',11)
-    .attr('font-size',11).attr('fill','#2b6cb0').attr('text-anchor','start').attr('font-weight','700')
-    .text(`2025年 ▶`);
-
-  // 月ラベル + 第N週
-  let prevMonth = null;
-  allWeeks.forEach((w,wi)=>{
-    const info = WEEK_MAP[String(w)];
-    if(!info) return;
-    if(info.month !== prevMonth){
-      svg.append('text').attr('x', LABEL_W+wi*(CELL+GAP)+CELL/2).attr('y',11)
-        .attr('font-size',10).attr('fill','#4a5568').attr('text-anchor','middle').attr('font-weight','600')
-        .text(`${info.month}月`);
-      prevMonth = info.month;
-    }
-    svg.append('text').attr('x', LABEL_W+wi*(CELL+GAP)+CELL/2).attr('y',24)
-      .attr('font-size',8).attr('fill','#a0aec0').attr('text-anchor','middle')
-      .text(`第${info.week_in_month}週`);
-  });
-
-  // 模試行
-  exams.forEach((exam,ei)=>{
-    const y = 30 + ei*(CELL+GAP);
-    svg.append('text').attr('x',LABEL_W-6).attr('y',y+CELL*0.7)
-      .attr('font-size',10).attr('fill','#4a5568').attr('text-anchor','end')
-      .text(exam.length>16?exam.slice(0,16)+'…':exam);
-
-    allWeeks.forEach((w,wi)=>{
-      const score = (lookup[exam]&&lookup[exam][w])||0;
-      const intensity = score / (maxScore * 1.2);
-      const phase = getPhase(w, exam);
-      const phaseInfo = phase ? PHASE_COLORS[phase] : null;
-      const fill = score===0 ? '#f0f2f5'
-        : phaseInfo
-          ? d3.interpolateRgb('#e8edf2', phaseInfo.fill)(Math.min(intensity * 2.0, 1))
-          : d3.interpolateRgb('#dde3ea','#8a9aaa')(Math.min(intensity*1.8,1));
-      const strokeC = score>0 ? (phaseInfo ? phaseInfo.fill : '#8aa0b8') : '#e8edf2';
-      const cell = svg.append('rect')
-        .attr('x',LABEL_W+wi*(CELL+GAP)).attr('y',y)
-        .attr('width',CELL).attr('height',CELL).attr('rx',3)
-        .attr('fill',fill).attr('stroke',strokeC).attr('stroke-width', score>0 ? 1 : 0.5)
-        .style('cursor',score>0?'pointer':'default');
-      if(score>=4){
-        svg.append('text').attr('x',LABEL_W+wi*(CELL+GAP)+CELL/2).attr('y',y+CELL*0.72)
-          .attr('font-size',9).attr('fill','white').attr('text-anchor','middle').attr('font-weight','bold').text(score);
-      }
-      cell.on('mouseover',(event)=>{
-        if(!score) return;
-        const tt=document.getElementById('tooltip');
-        const ph = getPhase(w, exam);
-        const phLabel = ph ? ` <span style="background:${PHASE_COLORS[ph].fill};color:white;padding:1px 6px;border-radius:8px;font-size:10px">${PHASE_COLORS[ph].label}</span>` : '';
-        tt.innerHTML=`<b>${exam}</b>${phLabel}<br>${wLabel(w)}<br>負荷スコア: <b>${score}</b>`;
-        tt.style.opacity=1; tt.style.left=(event.clientX+12)+'px'; tt.style.top=(event.clientY-10)+'px';
-      }).on('mouseout',()=>{document.getElementById('tooltip').style.opacity=0;});
-    });
-  });
-
-  // 合算行
-  const totalByWeek={};
-  mergedTotal.forEach(d=>{totalByWeek[d.week]=d.score;});
-  const maxT = Math.max(...Object.values(totalByWeek),1);
-  const totalY = 30+exams.length*(CELL+GAP)+6;
-
-  svg.append('text').attr('x',LABEL_W-6).attr('y',totalY+CELL*0.7)
-    .attr('font-size',10).attr('fill','#2d3748').attr('text-anchor','end').attr('font-weight','bold').text('【合算】');
-
-  allWeeks.forEach((w,wi)=>{
-    const score=totalByWeek[w]||0;
-    const fill=score===0?'#f0f2f5':d3.interpolateRgb('#c8d8e8','#1a2a3a')(Math.min(score/maxT,1));
-    const cell=svg.append('rect')
-      .attr('x',LABEL_W+wi*(CELL+GAP)).attr('y',totalY)
-      .attr('width',CELL).attr('height',CELL).attr('rx',3)
-      .attr('fill',fill).attr('stroke',score>0?'#fc8181':'#e2e8f0').attr('stroke-width',0.5);
-    svg.append('text').attr('x',LABEL_W+wi*(CELL+GAP)+CELL/2).attr('y',totalY+CELL*0.72)
-      .attr('font-size',8).attr('fill',score>maxT*0.6?'white':'#4a5568')
-      .attr('text-anchor','middle').attr('font-weight',score>maxT*0.5?'bold':'normal')
-      .text(score>0?score:'');
-    cell.on('mouseover',(event)=>{
-      if(!score) return;
-      const tt=document.getElementById('tooltip');
-      const breakdown=mergedWeekly.filter(d=>d.week===w).map(d=>`${d.exam}: ${d.score}`).join('<br>');
-      tt.innerHTML=`<b>${wLabel(w)} 合算</b><br>合計: <b>${score}点</b><br>${breakdown}`;
-      tt.style.opacity=1; tt.style.left=(event.clientX+12)+'px'; tt.style.top=(event.clientY-10)+'px';
-    }).on('mouseout',()=>{document.getElementById('tooltip').style.opacity=0;});
-  });
-  svg.attr('height', totalY+CELL+10);
-
-  // ── マーカー行（合算行の下）──
-  const markerY = totalY + CELL + 6;
-  allWeeks.forEach((w, wi) => {
-    const mk = weekMarkers[String(w)];
-    if (!mk) return;
-    const cx = LABEL_W + wi*(CELL+GAP) + CELL/2;
-
-    // 背景色
-    const bgColor = mk.type === 'both' ? '#8a6040'
-                  : mk.type === 'high' ? '#8a4a4a'
-                  : '#3182ce';
-
-    // アイコン文字
-    const icon = mk.type === 'both' ? '🔴🟡'
-               : mk.type === 'high' ? '🔴'
-               : '🟡';
-
-    // 枠
-    svg.append('rect')
-      .attr('x', LABEL_W + wi*(CELL+GAP)).attr('y', markerY)
-      .attr('width', CELL).attr('height', CELL)
-      .attr('rx', 3)
-      .attr('fill', bgColor).attr('opacity', 0.15)
-      .attr('stroke', bgColor).attr('stroke-width', 1.5);
-
-    // テキスト
-    svg.append('text')
-      .attr('x', cx).attr('y', markerY + CELL*0.72)
-      .attr('font-size', mk.type==='both' ? 7 : 9)
-      .attr('text-anchor', 'middle')
-      .text(icon);
-
-    // ホバー
-    svg.append('rect')
-      .attr('x', LABEL_W + wi*(CELL+GAP)).attr('y', markerY)
-      .attr('width', CELL).attr('height', CELL).attr('rx', 3)
-      .attr('fill', 'transparent').style('cursor', 'pointer')
-      .on('mouseover', (event) => {
-        const tt = document.getElementById('tooltip');
-        const highPart = mk.high_exams.length
-          ? `<b>🔴 〆切重複（${mk.high_exams.length}模試）</b><br>${mk.high_exams.map(e=>`・${e}`).join('<br>')}`
-          : '';
-        const midPart = mk.mid_exams.length
-          ? `<b>🟡 会議重複（${mk.mid_exams.length}模試）</b><br>${mk.mid_exams.map(e=>`・${e}`).join('<br>')}`
-          : '';
-        tt.innerHTML = `<b>${wLabel(w)}</b><br>${[highPart, midPart].filter(Boolean).join('<br><br>')}`;
-        tt.style.opacity = 1;
-        tt.style.left = (event.clientX+12)+'px';
-        tt.style.top  = (event.clientY-10)+'px';
-      }).on('mouseout', () => { document.getElementById('tooltip').style.opacity=0; });
-  });
-
-  // マーカー行ラベル
-  svg.append('text')
-    .attr('x', LABEL_W-6).attr('y', markerY + CELL*0.72)
-    .attr('font-size', 9).attr('fill','#4a5568').attr('text-anchor','end')
-    .text('重複マーク');
-
-  svg.attr('height', markerY + CELL + 6);
-}
-
-// ===================== BAR =====================
-function buildBar() {
-  const colors = examColors;
-  const exams  = allExams.filter(e => e !== '他予定');
-  const allWeeks = [...new Set(mergedWeekly.map(d=>d.week))].sort((a,b)=>a-b);
-
-  const stackData = allWeeks.map(w=>{
-    const row={week:w};
-    exams.forEach(e=>{
-      const f=mergedWeekly.find(d=>d.week===w&&d.exam===e);
-      row[e]=f?f.score:0;
-    });
-    return row;
-  });
-
-  const container=document.getElementById('barContainer');
-  container.innerHTML='';
-
-  const margin={top:10,right:20,bottom:55,left:40};
-  const totalW=Math.max(allWeeks.length*22+margin.left+margin.right,700);
-  const height=220;
-  const innerW=totalW-margin.left-margin.right;
-  const innerH=height-margin.top-margin.bottom;
-
-  const svg=d3.select(container).append('svg').attr('width',totalW).attr('height',height);
-  const g=svg.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
-
-  const x=d3.scaleBand().domain(allWeeks).range([0,innerW]).padding(0.15);
-  const totalByWeek={};
-  mergedTotal.forEach(d=>{totalByWeek[d.week]=d.score;});
-  const maxY=Math.max(...Object.values(totalByWeek),1);
-  const y=d3.scaleLinear().domain([0,maxY*1.1]).range([innerH,0]);
-
-  const threshold=maxY*0.65;
-
-  // 単色バー
-  allWeeks.forEach(w => {
-    const score = totalByWeek[w] || 0;
-    if (score === 0) return;
-    g.append('rect')
-      .attr('x', x(w)).attr('y', y(score))
-      .attr('width', x.bandwidth()).attr('height', Math.max(0, innerH - y(score)))
-      .attr('fill', '#4a6fa5').attr('rx', 2)
-      .on('mouseover', (event) => {
-        const tt = document.getElementById('tooltip');
-        const breakdown = mergedWeekly.filter(d=>d.week===w)
-          .sort((a,b)=>b.score-a.score)
-          .map(d=>`・${d.exam}: ${d.score}`)
-          .join('<br>');
-        tt.innerHTML = `<b>${wLabel(w)}</b><br>合計スコア: <b>${score}</b><br>${breakdown}`;
-        tt.style.opacity=1; tt.style.left=(event.clientX+12)+'px'; tt.style.top=(event.clientY-10)+'px';
-      }).on('mouseout',()=>{document.getElementById('tooltip').style.opacity=0;});
-  });
-
-  // X軸ラベル
-  const xAxis=g.append('g').attr('transform',`translate(0,${innerH})`);
-  // 年ラベルは左軸の外（マイナスx）に配置して月ラベルと重ならないように
-  svg.append('text')
-    .attr('x', margin.left - 4).attr('y', margin.top + innerH + 22)
-    .attr('font-size', 11).attr('fill', '#2b6cb0').attr('text-anchor', 'end').attr('font-weight', '700')
-    .text('2025年');
-  allWeeks.forEach((w,wi)=>{
-    const info=WEEK_MAP[String(w)];
-    if(!info) return;
-    const cx=x(w)+x.bandwidth()/2;
-    const prevW=allWeeks[wi-1];
-    const prevInfo=prevW?WEEK_MAP[String(prevW)]:null;
-    if(!prevInfo||prevInfo.month!==info.month){
-      xAxis.append('text').attr('x',cx).attr('y',22)
-        .attr('font-size',10).attr('fill','#4a5568').attr('text-anchor','middle').attr('font-weight','600')
-        .text(`${info.month}月`);
-    }
-    if(wi%2===0){
-      xAxis.append('text').attr('x',cx).attr('y',35)
-        .attr('font-size',8).attr('fill','#a0aec0').attr('text-anchor','middle')
-        .text(`第${info.week_in_month}週`);
-    }
-  });
-  xAxis.append('line').attr('x2',innerW).attr('stroke','#e2e8f0');
-
-  // マーカーは棒グラフには表示しない（ヒートマップの重複マーク行で確認）
-  g.append('g').call(d3.axisLeft(y).ticks(5)).selectAll('text').attr('font-size',9).attr('fill','#718096');
-
-
-
-  // インサイト
-  const peakWeek=mergedTotal.sort((a,b)=>b.score-a.score)[0];
-
-  document.getElementById('insightBox').innerHTML=`
-    <b>📌 自動インサイト（2026年＋2025年模試向け 合算）</b><br>
-    最繁忙週: <b>${wLabel(peakWeek.week)}（スコア${peakWeek.score}）</b><br>
-
-    両シート合算で見ると、複数模試の作業が同時進行している実態が把握できます。
-  `;
-}
-
-// ===================== OVERLAP =====================
-function buildOverlap(){
-  const container=document.getElementById('overlapContainer');
-  container.innerHTML='';
-
-  const weekExamHigh={};
-  mergedWeekly.forEach(d=>{
-    if(d.exam==='他予定') return;
-    if(d.score>=3){
-      if(!weekExamHigh[d.week]) weekExamHigh[d.week]=[];
-      weekExamHigh[d.week].push({exam:d.exam,score:d.score});
-    }
-  });
-  const overlapWeeks=Object.entries(weekExamHigh)
-    .filter(([_,e])=>e.length>=2)
-    .sort((a,b)=>b[1].reduce((s,e)=>s+e.score,0)-a[1].reduce((s,e)=>s+e.score,0));
-
-  const section=document.createElement('div');
-  section.innerHTML=`<div style="font-size:12px;font-weight:700;color:#4a5568;margin-bottom:8px">2026年＋2025年模試向け 合算 — 複数模試が同週高負荷な週</div>`;
-
-  if(!overlapWeeks.length){
-    section.innerHTML+=`<div style="font-size:12px;color:#718096">重複ピークなし</div>`;
-  } else {
-    const grid=document.createElement('div');
-    grid.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
-    overlapWeeks.slice(0,16).forEach(([week,exams])=>{
-      const total=exams.reduce((s,e)=>s+e.score,0);
-      const danger=total>=8;
-      const card=document.createElement('div');
-      card.style.cssText=`padding:8px 12px;border-radius:8px;border:1.5px solid ${danger?'#c09090':'#d4c4c4'};background:${danger?'#f5eded':'#f5f0ee'};min-width:140px`;
-      card.innerHTML=`<div style="font-size:11px;font-weight:700;color:${danger?'#7a3030':'#7a4a30'}">${wLabel(parseInt(week))} ${danger?'🔴':'🟡'}</div><div style="font-size:10px;color:#718096;margin-top:2px">合計スコア: <b>${total}</b></div>${exams.map(e=>`<div style="font-size:10px;margin-top:3px"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${examColors[e.exam]||'#ccc'};margin-right:4px"></span>${e.exam.slice(0,14)}: ${e.score}</div>`).join('')}`;
-      grid.appendChild(card);
-    });
-    section.appendChild(grid);
-  }
-  container.appendChild(section);
-}
-
-// ===================== QUESTION HELPER =====================
-document.getElementById('chatInput').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') copyInput();
-});
-
-function copyQ(el) {
-  copyText(el.textContent);
-}
-
-function copyInput() {
-  const input = document.getElementById('chatInput');
-  const msg = input.value.trim();
-  if (!msg) return;
-  copyText(msg);
-}
-
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    const toast = document.getElementById('copyToast');
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 2500);
-  }).catch(() => {
-    // fallback
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy');
-    document.body.removeChild(ta);
-    const toast = document.getElementById('copyToast');
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 2500);
-  });
-}
-
-
-// ===================== SIMULATION =====================
-const examWeeklyBase = {"26-2-2基礎": {"4": 3, "6": 2, "8": 3, "12": 2, "14": 6, "16": 1, "17": 1, "18": 1, "20": 1, "22": 3, "27": 2, "29": 1, "30": 2, "33": 1, "34": 1, "35": 3, "36": 5, "37": 1, "38": 1, "40": 1, "41": 3, "42": 3, "43": 1, "44": 4, "45": 1}, "26-3-9": {"4": 3, "5": 2, "6": 5, "8": 2, "9": 3, "10": 5, "11": 2, "13": 4, "14": 3, "15": 2, "17": 4, "18": 5, "19": 1, "20": 1, "21": 1, "22": 1, "23": 6, "24": 4, "25": 1, "26": 1}, "26-2-2専門": {"4": 3, "5": 2, "7": 2, "8": 3, "13": 2, "15": 6, "16": 1, "17": 1}, "26-3-7 地学（新フロー）": {"5": 5, "7": 1, "9": 5, "10": 2, "11": 3, "12": 3, "13": 4, "14": 1, "15": 3}, "26-3-11": {"11": 5, "12": 3, "13": 4, "15": 2, "16": 3, "17": 7, "18": 1, "20": 3, "22": 8, "23": 3, "25": 3, "26": 3, "27": 4, "28": 1, "29": 1, "31": 3, "32": 1, "33": 3, "34": 2}, "25-2-11記述地学": {"13": 2, "15": 3, "16": 1, "17": 3, "18": 1, "20": 1, "22": 3, "23": 3, "24": 1, "25": 2, "26": 3, "28": 2, "30": 3, "31": 5, "32": 4, "34": 3, "38": 3, "42": 3}, "27-3-7": {"14": 3, "15": 2, "21": 3, "24": 3, "25": 1, "26": 2, "27": 2, "28": 3, "29": 1, "31": 1, "32": 2, "34": 3, "36": 1, "37": 3, "40": 1, "42": 3}, "26-3-7記述地学": {"17": 1, "18": 2, "21": 3, "22": 3, "23": 2, "25": 5, "27": 3, "28": 1, "29": 2, "31": 3, "32": 5, "35": 4, "36": 4, "38": 4, "39": 1, "41": 3, "42": 4, "43": 4, "45": 1, "47": 1, "49": 2, "50": 1, "51": 4, "52": 4}, "25-3-10 記述地学": {"35": 3, "39": 3}, "26-2-2マーク専門": {"42": 2, "48": 3, "49": 1}, "26-2-2マーク基礎": {"43": 2, "48": 3}, "26-3-9マーク": {"46": 2, "51": 5}};
-const simExams = Object.keys(examWeeklyBase).filter(e => e !== '他予定');
-const simShifts = {}; // exam -> shift週数
-simExams.forEach(e => { simShifts[e] = 0; });
-
-function buildSimSliders() {
-  const container = document.getElementById('simSliders');
-  container.innerHTML = '';
-  simExams.forEach(exam => {
-    const color = examColors[exam] || '#4299e1';
-    const div = document.createElement('div');
-    div.style.cssText = 'background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px';
-    div.innerHTML = `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0"></span>
-        <span style="font-size:11px;font-weight:600;color:#2d3748;flex:1">${exam}</span>
-        <span id="shiftLabel_${exam.replace(/[^a-zA-Z0-9]/g,'_')}" style="font-size:11px;font-weight:700;color:#2b6cb0;min-width:32px;text-align:right">±0週</span>
+function renderCompChart(cid){
+  const c = centers[cid];
+  const maxCount = Math.max(...c.comp.map(x=>x.count));
+  document.getElementById('compChart').innerHTML = c.comp.map(r=>{
+    const cPct = Math.round(r.count/maxCount*100);
+    return `<div class="comp-row">
+      <div class="comp-label">${r.type}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <div class="comp-bg"><div class="comp-fill" style="width:${cPct}%;background:#378ADD"></div></div>
+          <span class="comp-val">${r.count.toLocaleString()}台</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="comp-bg"><div class="comp-fill" style="width:${r.costPct}%;background:#E24B4A"></div></div>
+          <span class="comp-val">${r.costPct}%</span>
+        </div>
       </div>
-      <input type="range" min="-4" max="4" value="0" step="1"
-        style="width:100%;accent-color:${color}"
-        oninput="onShiftChange('${exam}', this.value)">
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:#a0aec0;margin-top:2px">
-        <span>-4週前倒し</span><span>0</span><span>+4週後ろ倒し</span>
+    </div>`;
+  }).join('');
+}
+
+function renderHypos(cid){
+  document.getElementById('hypoList').innerHTML = centers[cid].hypos.map((h,i)=>`
+    <div class="rec-card" id="hypo${i}">
+      <div class="rec-header">
+        <div class="rec-title"><i class="ti ti-bulb" aria-hidden="true" style="font-size:14px;color:var(--blue-600)"></i> ${h.title}</div>
+        <span class="badge badge-info">AI推定</span>
       </div>
-    `;
-    container.appendChild(div);
-  });
+      <div class="rec-body">${h.body}</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="approveHypo(${i})"><i class="ti ti-check" aria-hidden="true"></i> 確認・承認</button>
+        <button class="btn" onclick="rejectHypo(${i})">制約あり（却下）</button>
+      </div>
+    </div>`).join('');
 }
 
-function onShiftChange(exam, val) {
-  simShifts[exam] = parseInt(val);
-  const labelId = 'shiftLabel_' + exam.replace(/[^a-zA-Z0-9]/g,'_');
-  const label = document.getElementById(labelId);
-  if (label) label.textContent = (val > 0 ? '+' : '') + val + '週';
-  renderSimChart();
+function renderConstraints(){
+  document.getElementById('constraintList').innerHTML = constraints.map((c,i)=>
+    `<div class="constraint-tag">${c}<span class="del" onclick="removeConstraint(${i})" title="削除">　×</span></div>`
+  ).join('');
 }
 
-function calcSimTotal() {
-  const shifted = {};
-  for (let w = 1; w <= 52; w++) shifted[w] = 0;
-
-  simExams.forEach(exam => {
-    const shift = simShifts[exam] || 0;
-    const base = examWeeklyBase[exam] || {};
-    Object.entries(base).forEach(([w, s]) => {
-      const nw = Math.max(1, Math.min(52, parseInt(w) + shift));
-      shifted[nw] = (shifted[nw] || 0) + s;
-    });
-  });
-  return shifted;
+function renderActionLogs(){
+  document.getElementById('actionList').innerHTML = actionLogs.map((a,i)=>{
+    const hasConfirm = a.checked.includes('confirm');
+    const hasRoot = a.checked.includes('root');
+    const hasNext = a.next;
+    return `<div class="action-log">
+      <div class="action-log-title">${a.title}</div>
+      <div class="check-row">
+        <label class="check-item" onclick="toggleCheck(${i},'confirm')">
+          <div class="check-box ${hasConfirm?'checked':''}"></div>確認済
+        </label>
+        <label class="check-item" onclick="toggleCheck(${i},'root')" style="margin-left:14px">
+          <div class="check-box ${hasRoot?'checked':''}"></div>原因究明済
+        </label>
+        <label class="check-item" onclick="toggleCheck(${i},'next')" style="margin-left:14px">
+          <div class="check-box ${hasNext?'checked':''}"></div>次月対応
+        </label>
+      </div>
+      <textarea class="reason-input" placeholder="現場入力：原因・対応メモを入力" style="min-height:40px" oninput="updateMemo(${i},this.value)">${a.memo}</textarea>
+      <div style="font-size:12px;margin-top:8px;color:var(--text-secondary)">
+        <i class="ti ti-info-circle" aria-hidden="true" style="font-size:13px;color:var(--blue-600)"></i>　異常値放置3日超の場合、上長へ自動エスカレーション通知を送信します
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function renderSimChart() {
-  const baseTotal = {};
-  mergedTotal.forEach(r => { baseTotal[r.week] = r.score; });
+function updateMemo(i,v){actionLogs[i].memo=v;}
 
-  const simTotal = calcSimTotal();
-  const allWeeks = Array.from({length:52}, (_,i)=>i+1);
-
-  const maxVal = Math.max(
-    ...allWeeks.map(w => baseTotal[w] || 0),
-    ...allWeeks.map(w => simTotal[w] || 0),
-    1
-  );
-
-  const margin = {top:10, right:20, bottom:45, left:40};
-  const W = Math.max(allWeeks.length * 16 + margin.left + margin.right, 700);
-  const H = 200;
-  const iW = W - margin.left - margin.right;
-  const iH = H - margin.top - margin.bottom;
-
-  const svg = d3.select('#simSvg').attr('width', W).attr('height', H);
-  svg.selectAll('*').remove();
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-
-  const x = d3.scaleBand().domain(allWeeks).range([0, iW]).padding(0.1);
-  const y = d3.scaleLinear().domain([0, maxVal * 1.1]).range([iH, 0]);
-
-  // グリッド
-  g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(-iW))
-    .selectAll('line').attr('stroke','#e2e8f0').attr('stroke-dasharray','3,2');
-  g.selectAll('.domain').remove();
-
-  // 元スコア（赤エリア）
-  const areaBase = d3.area()
-    .x(w => x(w) + x.bandwidth()/2)
-    .y0(iH).y1(w => y(baseTotal[w] || 0))
-    .curve(d3.curveMonotoneX);
-  g.append('path').datum(allWeeks)
-    .attr('d', areaBase).attr('fill','#fed7d7').attr('opacity', 0.5);
-  g.append('path').datum(allWeeks)
-    .attr('d', d3.line().x(w=>x(w)+x.bandwidth()/2).y(w=>y(baseTotal[w]||0)).curve(d3.curveMonotoneX))
-    .attr('fill','none').attr('stroke','#e53e3e').attr('stroke-width',2);
-
-  // 調整後スコア（緑ライン）
-  const anyShift = simExams.some(e => simShifts[e] !== 0);
-  if (anyShift) {
-    const areaSim = d3.area()
-      .x(w => x(w) + x.bandwidth()/2)
-      .y0(iH).y1(w => y(simTotal[w] || 0))
-      .curve(d3.curveMonotoneX);
-    g.append('path').datum(allWeeks)
-      .attr('d', areaSim).attr('fill','#c6f6d5').attr('opacity', 0.5);
-    g.append('path').datum(allWeeks)
-      .attr('d', d3.line().x(w=>x(w)+x.bandwidth()/2).y(w=>y(simTotal[w]||0)).curve(d3.curveMonotoneX))
-      .attr('fill','none').attr('stroke','#38a169').attr('stroke-width',2.5).attr('stroke-dasharray','none');
-  }
-
-  // X軸
-  const xAxis = g.append('g').attr('transform', `translate(0,${iH})`);
-  xAxis.append('line').attr('x2',iW).attr('stroke','#e2e8f0');
-  let prevMonth = null;
-  allWeeks.forEach((w,wi) => {
-    const info = WEEK_MAP[String(w)];
-    if (!info) return;
-    if (info.month !== prevMonth) {
-      xAxis.append('text').attr('x', x(w)+x.bandwidth()/2).attr('y', 18)
-        .attr('font-size',10).attr('fill','#4a5568').attr('text-anchor','middle').attr('font-weight','600')
-        .text(`${info.month}月`);
-      prevMonth = info.month;
-    }
-    if (wi % 2 === 0) {
-      xAxis.append('text').attr('x', x(w)+x.bandwidth()/2).attr('y', 30)
-        .attr('font-size',8).attr('fill','#a0aec0').attr('text-anchor','middle')
-        .text(`第${info.week_in_month}週`);
-    }
-  });
-  g.append('g').call(d3.axisLeft(y).ticks(5)).selectAll('text').attr('font-size',9).attr('fill','#718096');
-
-  // 年ラベル
-  xAxis.append('text').attr('x',0).attr('y',18)
-    .attr('font-size',11).attr('fill','#2b6cb0').attr('text-anchor','start').attr('font-weight','700')
-    .text('2025年 ▶');
-
-  // サマリー更新
-  const baseScores = allWeeks.map(w => baseTotal[w]||0);
-  const simScores  = allWeeks.map(w => simTotal[w]||0);
-  const baseMax = Math.max(...baseScores);
-  const simMax  = Math.max(...simScores);
-  const baseAvg = (baseScores.reduce((a,b)=>a+b,0)/52).toFixed(1);
-  const simAvg  = (simScores.reduce((a,b)=>a+b,0)/52).toFixed(1);
-  const threshold = baseMax * 0.65;
-  const baseHigh = baseScores.filter(s=>s>=threshold).length;
-  const simHigh  = simScores.filter(s=>s>=threshold).length;
-
-  const improved = anyShift && simMax < baseMax;
-  const summaryEl = document.getElementById('simSummary');
-  if (!anyShift) {
-    summaryEl.innerHTML = '<span style="color:#718096">スライダーを動かすと差分が表示されます</span>';
+function toggleCheck(i,key){
+  if(actionLogs[i].checked.includes(key)){
+    actionLogs[i].checked=actionLogs[i].checked.filter(c=>c!==key);
   } else {
-    const diff = simMax - baseMax;
-    const diffColor = diff < 0 ? '#38a169' : diff > 0 ? '#e53e3e' : '#718096';
-    const highDiff = simHigh - baseHigh;
-    summaryEl.innerHTML = `
-      <b>📊 調整結果サマリー</b><br>
-      最大週スコア: <b>${baseMax}</b> → <b style="color:${diffColor}">${simMax}</b>（<span style="color:${diffColor}">${diff>0?'+':''}${diff}</span>）<br>
-      週平均スコア: <b>${baseAvg}</b> → <b>${simAvg}</b><br>
-      高負荷週数: <b>${baseHigh}週</b> → <b style="color:${highDiff<0?'#38a169':highDiff>0?'#e53e3e':'#718096'}">${simHigh}週</b>（${highDiff>0?'+':''}${highDiff}）<br>
-      ${improved ? '✅ ピークが下がっています！この調整は有効です。' : diff===0 ? '⚠️ ピークスコアに変化なし。別の組み合わせを試してみてください。' : '❌ ピークが上昇しています。スライダーを戻してください。'}
-    `;
+    actionLogs[i].checked.push(key);
+  }
+  if(key==='next') actionLogs[i].next=!actionLogs[i].next;
+  renderActionLogs();
+}
+
+function addActionLog(){
+  actionLogs.unshift({title:`新規アクション ${actionLogs.length+1}`,checked:[],next:false,memo:''});
+  renderActionLogs();
+  document.getElementById('faq-count').textContent=parseInt(document.getElementById('faq-count').textContent)+1;
+}
+
+function addConstraint(){
+  const v=document.getElementById('newConstraint').value.trim();
+  if(v){constraints.push(v);renderConstraints();document.getElementById('newConstraint').value='';}
+}
+function removeConstraint(i){constraints.splice(i,1);renderConstraints();}
+
+function approveHypo(i){
+  const card=document.getElementById('hypo'+i);
+  if(card){card.style.background='var(--green-50)';card.querySelectorAll('button').forEach(b=>{b.disabled=true;b.textContent='✓ 承認済';});}
+}
+function rejectHypo(i){
+  const card=document.getElementById('hypo'+i);
+  if(card){card.style.background='var(--red-50)';card.querySelectorAll('button').forEach(b=>{b.disabled=true;});card.querySelector('.rec-body').textContent+=' → 制約あり：AIに学習させました。';}
+}
+
+function apAction(type){
+  const c=centers[currentCenter];
+  const res=document.getElementById('ap-result');
+  const ra=document.getElementById('ap-reason-area');
+  if(type==='reject'){
+    ra.style.display='block';
+    res.style.display='block';
+    res.style.background='var(--red-50)';res.style.color='var(--red-600)';
+    res.textContent='却下理由を入力してください。入力内容はアクションFAQとして蓄積されます。';return;
+  }
+  ra.style.display='none';
+  if(type==='approve'){
+    res.style.display='block';
+    res.style.background='var(--green-50)';res.style.color='var(--green-600)';
+    res.textContent=`✓ 承認しました。アクション管理に追加されました。`;
+    actionLogs.unshift({title:'AIアクションプランの実行（'+c.name+'）',checked:['confirm'],next:false,memo:'承認済。実行開始。'});
+  } else {
+    res.style.display='block';
+    res.style.background='var(--amber-50)';res.style.color='var(--amber-600)';
+    res.textContent='保留中です。確認完了後に承認してください。';
   }
 }
 
-// ===================== INIT =====================
-buildHeatmap();
-buildBar();
-buildOverlap();
-buildSimSliders();
-renderSimChart();
+function changeCenter(val){
+  currentCenter=val;
+  const c=centers[val];
+  document.getElementById('kpi-actual').textContent=fmt(c.actual);
+  document.getElementById('kpi-actual-sub').textContent=c.actualSubLabel;
+  document.getElementById('kpi-theory').textContent=fmt(c.theory);
+  document.getElementById('kpi-theory-sub').textContent=c.theorySubLabel;
+  document.getElementById('kpi-gap').textContent=fmt(c.gap);
+  document.getElementById('kpi-gap-rate').textContent=`乖離率 ${c.gapRate}%`;
+  const gapEl=document.getElementById('kpi-gap');
+  gapEl.className='kpi-val '+(c.gapRate>15?'kpi-danger':c.gapRate>10?'kpi-warn':'kpi-success');
+  document.getElementById('kpi-cars').textContent=c.cars;
+  document.getElementById('kpi-cars-sub').textContent=c.carsSub;
+  document.getElementById('kpi-light').textContent=c.lightDep;
+  document.getElementById('kpi-unitratio').textContent=c.unitRatio;
+  document.getElementById('kpi-unitratio').className='kpi-val '+(parseFloat(c.unitRatio)>115?'kpi-danger':parseFloat(c.unitRatio)>110?'kpi-warn':'kpi-success');
+  document.getElementById('ai-analysis-text').textContent=c.aiAnalysis;
+  document.getElementById('ai-vehicle-text').textContent=c.aiVehicle;
+  document.getElementById('ap-gap-val').textContent=fmt(c.gap);
+  document.getElementById('ap-body').innerHTML=c.apBody.replace(/\n/g,'<br>');
+  document.getElementById('ap-result').style.display='none';
+  document.getElementById('ap-reason-area').style.display='none';
+  renderVehicleTable(val);
+  renderCompChart(val);
+  renderHypos(val);
+}
+
+function showStep(n){
+  for(let i=0;i<4;i++){
+    document.getElementById('step'+i).classList.toggle('section-hidden',i!==n);
+    document.getElementById('tab'+i).classList.toggle('active',i===n);
+  }
+}
+
+changeCenter('yashio');
+renderConstraints();
+renderActionLogs();
 </script>
 </body>
 </html>
