@@ -176,6 +176,18 @@ input[type=text]{font-size:13px;padding:8px 11px;border-radius:var(--r);border:1
 input[type=text]:focus{border-color:var(--blue)}
 select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1);cursor:pointer;outline:none}
 
+/* course analysis */
+.course-table{width:100%;border-collapse:collapse;font-size:13px}
+.course-table th{padding:7px 10px;border-bottom:1px solid var(--bl);color:var(--t2);font-weight:600;text-align:left;font-size:11px;background:var(--bg2);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.course-table td{padding:8px 10px;border-bottom:1px solid var(--bl);color:var(--t1);white-space:nowrap}
+.course-table tr:hover td{background:var(--bg2);cursor:pointer}
+.course-table tr.selected td{background:var(--blue-l)!important}
+.eff-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.eff-bad{background:var(--red-l);color:var(--red)}
+.eff-mid{background:var(--amber-l);color:var(--amber)}
+.eff-good{background:var(--green-l);color:var(--green)}
+.timeline-wrap{overflow-x:hidden}
+
 /* macro view — center comparison & trend */
 .center-bar-row{display:flex;align-items:center;gap:10px;padding:6px 8px;cursor:pointer;border-radius:var(--r);margin-bottom:3px}
 .center-bar-row:hover{background:var(--bg2)}
@@ -324,6 +336,7 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
     <button class="step-btn" id="tab1" onclick="showStep(1)"><span class="step-num" id="sn1">2</span>トレンド分析</button>
     <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP立案</button>
     <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>アクション管理</button>
+    <button class="step-btn" id="tab4" onclick="showStep(4)"><span class="step-num" id="sn4">5</span>コース分析</button>
   </div>
   <div class="topbar-right" style="display:flex;align-items:center;gap:10px">
     <button id="apiKeyBtn" class="btn" style="padding:6px 10px;font-size:12px;white-space:nowrap" onclick="openApiKeyModal()">🔑 APIキー設定</button>
@@ -534,6 +547,31 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
   </div>
 </div>
 
+<!-- ===== STEP 4: コース分析 ===== -->
+<div id="step4" class="section-hidden">
+  <div class="two-col" style="margin-bottom:0">
+    <div class="panel">
+      <div class="panel-title"><i class="ti ti-route" style="color:var(--blue)"></i>コース別効率ランキング
+        <span style="font-size:11px;font-weight:400;color:var(--t2)">（km/件：低いほど効率良）</span>
+      </div>
+      <div style="overflow-x:auto"><table class="course-table" id="courseTableEl">
+        <thead><tr><th>コースID</th><th>走行距離</th><th>納品件数</th><th>運行時間</th><th>効率(km/件)</th><th>判定</th></tr></thead>
+        <tbody id="courseTableBody"></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><i class="ti ti-brain" style="color:var(--blue)"></i>AI分析 <span id="courseAiLabel" style="font-size:12px;color:var(--blue);font-weight:400"></span></div>
+      <div id="courseAiContent">
+        <div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左のテーブルからコースを選択してください</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <div class="panel-title"><i class="ti ti-calendar-time" style="color:var(--blue)"></i>日別稼働タイムライン <span id="timelineCourseLabel" style="font-size:12px;color:var(--blue);font-weight:400"></span></div>
+    <div id="timelineContent"><div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div></div>
+  </div>
+</div>
+
 </div><!-- /content -->
 </div><!-- /app -->
 
@@ -713,6 +751,57 @@ const CENTERS = {
     },
     hypoScores:{overtime:95,lowutil:80,highcost:70,fleet:40},
   }
+};
+
+// ===== COURSE DATA =====
+// June 2026 starts on Monday
+const WDAYS=[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26,29,30];
+const WDAYS_SAT=[1,2,3,4,5,6,8,9,10,11,12,13,15,16,17,18,19,20,22,23,24,25,26,27,29,30];
+const CENTER_COURSES = {
+  yashio:[
+    {id:'A-01',distance:158,deliveries:22,hours:11.5,startH:6.5,endH:18.0,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:142,deliveries:24,hours:10.8,startH:7.0,endH:17.8,type:'ac',activeDays:WDAYS},
+    {id:'A-03',distance:195,deliveries:16,hours:12.8,startH:6.0,endH:18.8,type:'own',activeDays:WDAYS},
+    {id:'A-04',distance:178,deliveries:18,hours:12.2,startH:7.5,endH:19.7,type:'ac',activeDays:WDAYS},
+    {id:'A-05',distance:124,deliveries:21,hours:10.2,startH:7.0,endH:17.2,type:'own',activeDays:WDAYS},
+    {id:'A-06',distance:231,deliveries:13,hours:14.1,startH:5.5,endH:19.6,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23]},
+  ],
+  utsunomiya:[
+    {id:'A-01',distance:245,deliveries:18,hours:12.1,startH:6.0,endH:18.1,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:198,deliveries:21,hours:11.8,startH:6.5,endH:18.3,type:'own',activeDays:WDAYS},
+    {id:'A-03',distance:312,deliveries:14,hours:14.5,startH:5.5,endH:20.0,type:'ac',activeDays:[1,2,3,8,9,10,15,16,17,22,23,24,29,30]},
+    {id:'A-04',distance:187,deliveries:23,hours:11.2,startH:7.0,endH:18.2,type:'own',activeDays:WDAYS},
+    {id:'A-05',distance:278,deliveries:12,hours:13.8,startH:5.0,endH:18.8,type:'ac',activeDays:[1,2,3,4,5,8,9,10,11,15,16,17,18,22,23,24,25]},
+    {id:'A-06',distance:165,deliveries:25,hours:10.8,startH:7.5,endH:18.3,type:'own',activeDays:WDAYS},
+    {id:'A-07',distance:234,deliveries:16,hours:12.5,startH:6.0,endH:18.5,type:'ac',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,22,23,24,25]},
+  ],
+  omiya:[
+    {id:'A-01',distance:178,deliveries:22,hours:10.5,startH:7.0,endH:17.5,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:192,deliveries:19,hours:11.2,startH:6.5,endH:17.7,type:'own',activeDays:WDAYS},
+    {id:'A-03',distance:145,deliveries:28,hours:9.8,startH:7.5,endH:17.3,type:'ac',activeDays:WDAYS_SAT},
+    {id:'A-04',distance:215,deliveries:16,hours:12.5,startH:6.0,endH:18.5,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26]},
+    {id:'A-05',distance:168,deliveries:24,hours:10.8,startH:7.0,endH:17.8,type:'ac',activeDays:WDAYS},
+    {id:'A-06',distance:198,deliveries:18,hours:11.8,startH:6.5,endH:18.3,type:'own',activeDays:WDAYS},
+    {id:'A-07',distance:134,deliveries:30,hours:9.2,startH:8.0,endH:17.2,type:'ac',activeDays:WDAYS_SAT},
+  ],
+  chiba:[
+    {id:'A-01',distance:165,deliveries:24,hours:10.5,startH:7.0,endH:17.5,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:145,deliveries:27,hours:9.8,startH:7.5,endH:17.3,type:'own',activeDays:WDAYS},
+    {id:'A-03',distance:188,deliveries:20,hours:11.2,startH:6.5,endH:17.7,type:'ac',activeDays:WDAYS},
+    {id:'A-04',distance:172,deliveries:22,hours:10.8,startH:7.0,endH:17.8,type:'own',activeDays:WDAYS},
+    {id:'A-05',distance:145,deliveries:26,hours:9.5,startH:7.5,endH:17.0,type:'ac',activeDays:WDAYS},
+    {id:'A-06',distance:214,deliveries:15,hours:12.8,startH:6.0,endH:18.8,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24]},
+  ],
+  kawasaki:[
+    {id:'A-01',distance:98,deliveries:32,hours:9.8,startH:7.0,endH:16.8,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:112,deliveries:28,hours:10.5,startH:6.5,endH:17.0,type:'ac',activeDays:WDAYS},
+    {id:'A-03',distance:145,deliveries:22,hours:12.8,startH:6.0,endH:18.8,type:'own',activeDays:WDAYS},
+    {id:'A-04',distance:168,deliveries:18,hours:14.1,startH:6.0,endH:20.1,type:'ac',activeDays:WDAYS},
+    {id:'A-05',distance:89,deliveries:35,hours:9.2,startH:7.5,endH:16.7,type:'own',activeDays:WDAYS_SAT},
+    {id:'A-06',distance:134,deliveries:24,hours:11.8,startH:7.0,endH:18.8,type:'ac',activeDays:WDAYS},
+    {id:'A-07',distance:156,deliveries:16,hours:13.5,startH:6.5,endH:20.0,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23]},
+    {id:'A-08',distance:78,deliveries:38,hours:8.9,startH:8.0,endH:16.9,type:'own',activeDays:WDAYS_SAT},
+  ],
 };
 
 // generate 12-month data per center
@@ -1871,16 +1960,144 @@ function submitAddTicket(){
   closeAddModal(); renderTickets(); updateTicketStats(); drawTicketChart();
 }
 
+// ===== COURSE ANALYSIS =====
+let selectedCourse = null;
+
+function renderCourseTable(){
+  const courses = CENTER_COURSES[currentCenter]||[];
+  const sorted = [...courses].sort((a,b)=>(b.distance/b.deliveries)-(a.distance/a.deliveries));
+  document.getElementById('courseTableBody').innerHTML = sorted.map(c=>{
+    const eff = (c.distance/c.deliveries).toFixed(1);
+    const e = parseFloat(eff);
+    const cls = e>=12?'eff-bad':e>=7?'eff-mid':'eff-good';
+    const label = e>=12?'要見直し':e>=7?'注意':'効率良';
+    const isSel = selectedCourse?.id===c.id;
+    return `<tr onclick="selectCourse('${c.id}')"${isSel?' class="selected"':''}>
+      <td style="font-weight:700">${c.id}</td>
+      <td>${c.distance}km</td>
+      <td>${c.deliveries}件</td>
+      <td>${c.hours}h</td>
+      <td style="font-weight:600">${eff}</td>
+      <td><span class="eff-badge ${cls}">${label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function selectCourse(courseId){
+  const courses = CENTER_COURSES[currentCenter]||[];
+  selectedCourse = courses.find(c=>c.id===courseId);
+  if(!selectedCourse) return;
+  renderCourseTable();
+  document.getElementById('courseAiLabel').textContent = `— ${courseId}`;
+  document.getElementById('timelineCourseLabel').textContent = `— ${courseId}`;
+  renderCourseTimeline(selectedCourse);
+  const aiEl = document.getElementById('courseAiContent');
+  if(hasApiKey()){
+    aiEl.innerHTML='<div style="color:var(--t2);font-size:13px;padding:20px 0;text-align:center">AI分析中...</div>';
+    loadCourseAI(selectedCourse);
+  } else {
+    aiEl.innerHTML='<div class="right-panel-empty"><i class="ti ti-key" style="font-size:28px"></i><span>APIキーを設定するとAI分析が有効になります</span></div>';
+  }
+}
+
+function renderCourseTimeline(course){
+  const totalDays = 30; // June 2026
+  const activeDays = course.activeDays||[];
+  const blockColor = course.type==='ac'?'#F97316':'var(--blue)';
+  const leftPct = (course.startH/24*100).toFixed(2);
+  const widthPct = ((course.endH-course.startH)/24*100).toFixed(2);
+  // Hour axis labels
+  const hourTicks = [0,3,6,9,12,15,18,21,24];
+  const headerHtml = `<div style="display:flex;align-items:center;margin-bottom:3px">
+    <div style="width:38px;flex-shrink:0"></div>
+    <div style="flex:1;position:relative;height:16px">
+      ${hourTicks.map(h=>`<div style="position:absolute;left:${(h/24*100).toFixed(1)}%;font-size:10px;color:var(--t2);transform:translateX(-50%)">${h}</div>`).join('')}
+    </div>
+  </div>`;
+  const rowsHtml = Array.from({length:totalDays},(_,idx)=>{
+    const day = idx+1;
+    const isActive = activeDays.includes(day);
+    return `<div style="display:flex;align-items:center;margin-bottom:2px">
+      <div style="width:38px;font-size:10px;color:var(--t2);text-align:right;padding-right:6px;flex-shrink:0">${day}日</div>
+      <div style="flex:1;height:14px;background:var(--bg3);position:relative;border-radius:2px">
+        ${isActive?`<div style="position:absolute;left:${leftPct}%;width:${widthPct}%;height:10px;top:2px;background:${blockColor};border-radius:2px;opacity:.9"></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('timelineContent').innerHTML = `
+    <div style="display:flex;gap:16px;font-size:12px;margin-bottom:8px;color:var(--t2)">
+      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:#F97316;margin-right:4px;vertical-align:middle"></span>AC業務</span>
+      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:var(--blue);margin-right:4px;vertical-align:middle"></span>自センター</span>
+      <span style="margin-left:4px">稼働時間: ${course.startH}時〜${course.endH}時</span>
+    </div>
+    ${headerHtml}${rowsHtml}`;
+}
+
+async function loadCourseAI(course){
+  const el = document.getElementById('courseAiContent');
+  if(!el) return;
+  const eff = (course.distance/course.deliveries).toFixed(1);
+  const others = (CENTER_COURSES[currentCenter]||[]).filter(c=>c.id!==course.id)
+    .map(c=>({id:c.id,distance:c.distance,deliveries:c.deliveries,hours:c.hours,type:c.type,eff:(c.distance/c.deliveries).toFixed(1)}));
+  const prompt = `あなたは物流コスト改善の専門AIです。以下のコースデータを分析してください。
+
+対象コース：${course.id}（${CENTERS[currentCenter].name}）
+走行距離:${course.distance}km / 納品件数:${course.deliveries}件 / 運行時間:${course.hours}h / 効率:${eff}km/件 / 業務種別:${course.type==='ac'?'AC業務':'自センター'}
+
+同センター他コース（参考）:
+${JSON.stringify(others,null,2)}
+
+以下の形式で1〜2文ずつ簡潔に回答してください：
+【現状課題】
+（このコースの主要な課題を1〜2文で）
+【改善提案】
+（具体的な改善策を1〜2文で。統合可能なコースがあれば言及してください）
+
+プレーンテキストのみ。合計100字以内。`;
+  try{
+    const res = await fetch('https://anthropic-proxy.kurihara-takashi.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json','x-api-key':getStoredApiKey(),'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result = await res.json();
+    const text = result.content?.[0]?.text||'';
+    if(el) el.innerHTML = renderCourseAISections(cleanHtmlText(text), course);
+  }catch(e){
+    if(el) el.innerHTML='<div style="color:var(--t2);font-size:13px">AI分析の取得に失敗しました。</div>';
+    console.error('[CourseAI]',e);
+  }
+}
+
+function renderCourseAISections(text, course){
+  if(!text) return '';
+  const defs=[
+    {marker:'【現状課題】',next:'【改善提案】',cls:'ai-section-issue',icon:'📋',label:'現状課題'},
+    {marker:'【改善提案】',next:null,cls:'ai-section-proposal',icon:'💡',label:'改善提案'},
+  ];
+  let html='';
+  defs.forEach(d=>{
+    if(!text.includes(d.marker)) return;
+    const after=(text.split(d.marker)[1]||'');
+    const content=d.next?(after.split(d.next)[0]||'').trim():after.trim();
+    if(content) html+=`<div class="${d.cls}"><div class="ai-section-label">${d.icon} ${d.label}</div><div class="ai-section-text">${content.replace(/\n/g,'<br>')}</div></div>`;
+  });
+  const saving = Math.round(course.distance*0.8+course.hours*10);
+  html+=`<div style="margin-top:12px"><button class="sim-btn" style="font-size:13px" onclick="applySimulation('コース${course.id}','コース最適化（走行距離削減）',${saving})"><i class="ti ti-check"></i> このプランをAPとして採用する</button></div>`;
+  return html||`<div style="font-size:13px;color:var(--t2)">${text.replace(/\n/g,'<br>')}</div>`;
+}
+
 function showStep(n, category, fromSim){
   // タブ直接クリックまたは仮説→③遷移のとき、sim由来の保留データをクリア
   if(n===2 && !fromSim) pendingApFromSim = null;
-  for(let i=0;i<4;i++){
-    document.getElementById('step'+i).classList.toggle('section-hidden',i!==n);
-    document.getElementById('tab'+i).classList.toggle('active',i===n);
+  for(let i=0;i<5;i++){
+    document.getElementById('step'+i)?.classList.toggle('section-hidden',i!==n);
+    document.getElementById('tab'+i)?.classList.toggle('active',i===n);
   }
   if(n===1){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
   if(n===2) renderAP(category);
   if(n===3){renderTickets();setTimeout(drawTicketChart,50);}
+  if(n===4){selectedCourse=null;renderCourseTable();}
 }
 
 function changeCenter(val){
@@ -1897,6 +2114,7 @@ function changeCenter(val){
     if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
+    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); document.getElementById('courseAiContent').innerHTML='<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>コースを選択してください</span></div>'; document.getElementById('timelineContent').innerHTML='<div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div>'; document.getElementById('courseAiLabel').textContent=''; document.getElementById('timelineCourseLabel').textContent=''; }
   }catch(e){console.warn('Error re-rendering screens after center change',e)}
 }
 
@@ -1914,6 +2132,7 @@ function changeMonth(val){
     if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
+    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); }
   }catch(e){console.warn('Error re-rendering screens after month change',e)}
 }
 
