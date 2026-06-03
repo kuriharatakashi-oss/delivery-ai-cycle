@@ -378,7 +378,8 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
 <div id="step2" class="section-hidden">
   <div class="ap-modal-wrap">
     <div class="ap-modal">
-      <div class="ap-alert"><i class="ti ti-alert-triangle" style="font-size:16px"></i>コスト乖離アラート：<strong id="ap-gap-disp">-</strong>　放置3日超 — エスカレーション済</div>
+      <div id="ap-alert-normal" class="ap-alert"><i class="ti ti-alert-triangle" style="font-size:16px"></i>コスト乖離アラート：<strong id="ap-gap-disp">-</strong>　放置3日超 — エスカレーション済</div>
+      <div id="ap-alert-ai" class="ap-alert" style="display:none;background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)"><i class="ti ti-sparkles" style="font-size:16px"></i>&nbsp;<span id="ap-alert-ai-msg"></span></div>
       <div id="ap-modal-title" style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px">AI分析結果と改善アクション提案</div>
       <div class="ap-body" id="ap-body"></div>
       <div id="ap-reject-form" style="display:none;margin-top:16px;border-top:1px solid var(--bl);padding-top:14px">
@@ -1220,8 +1221,16 @@ function renderAP(category){
   updateRejectVehicleOptions();
 
   if(pendingApFromSim){
-    // ①データ分析から「このプランをAPとして採用する」で遷移してきた場合
+    // ①データ分析「このプランをAPとして採用する」から遷移してきた場合
     const p = pendingApFromSim;
+
+    // アラートをAI提案用に切替（青系）
+    document.getElementById('ap-alert-normal').style.display = 'none';
+    const aiAlert = document.getElementById('ap-alert-ai');
+    aiAlert.style.display = 'flex';
+    document.getElementById('ap-alert-ai-msg').textContent =
+      `${p.vno} のAI提案APです。内容を確認して承認してください。`;
+
     const titleEl = document.getElementById('ap-modal-title');
     if(titleEl) titleEl.textContent = `${p.vno}：${p.title}`;
 
@@ -1245,7 +1254,9 @@ function renderAP(category){
     return;
   }
 
-  // 通常フロー（仮説カテゴリから遷移 or タブ直接クリック）
+  // 通常フロー（仮説カテゴリから遷移 or タブ直接クリック）— 通常アラートを復元
+  document.getElementById('ap-alert-normal').style.display = '';
+  document.getElementById('ap-alert-ai').style.display = 'none';
   const cat = category || selectedHypoCategory;
   selectedHypoCategory = cat || null;
   const titleEl = document.getElementById('ap-modal-title');
