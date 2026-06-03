@@ -496,6 +496,12 @@ const CENTERS = {
       {no:'No.088',type:'軽',temp:'冷蔵',theory:471,days:23,hours:5.9,status:'high',ai:'運行時間5.9h/日は本センター最短。空き時間が多く稼働効率が低い状態です。No.062・No.063からの物量移管により稼働率を60%以上に引き上げられる見込みです。',sim:{title:'No.062から物量移管',before:'5.9h/日',after:'8.4h/日',saving:-150}},
     ],
     apBody:'No.062・No.063の運行時間超過（13h超/日）およびNo.088の低稼働（5.9h/日）を同時検知。\n\n【提案AP】No.088の空き時間にNo.062・No.063の一部配送先（各5件/日）を移管し、3車両の稼働時間を平準化してください。理論コスト試算ベースで月間約380千円の削減が見込まれます。',
+    categoryAp:{
+      overtime:'No.062・No.063の運行時間超過が本センターの主要課題です。No.088の空き時間を活用してNo.062/No.063の一部配送先を物量移管し、3車両の稼働時間を平準化してください。',
+      lowutil:'No.088の低稼働を改善するため、No.062/No.063の一部配送先をNo.088へ移管し、稼働率を引き上げてください。',
+      highcost:'冷蔵軽貨物の原価単価改善を目的に、荷量の一部を2〜3t車または大型車へ集約し、輸送1件あたりのコストを削減してください。',
+      fleet:'本センターは軽貨物依存が強く、車両構成の非効率が顕在化しています。No.062/No.063の一部物量をより大型の車両へ移管し、構成効率を改善してください。'
+    },
     hypoScores:{overtime:85,lowutil:78,highcost:45,fleet:30},
   },
   utsunomiya:{name:'宇都宮センター',
@@ -506,6 +512,12 @@ const CENTERS = {
       {no:'No.007',type:'軽',temp:'冷蔵',theory:310,days:12,hours:7.2,status:'high',ai:'稼働日数12日と著しく少ない。月後半に稼働が集中しており、月前半の需要確保またはシフト見直しが必要です。固定費分の損失が発生しています。',sim:{title:'稼働日数改善（12→20日）',before:'12日/月',after:'20日/月',saving:200}},
     ],
     apBody:'No.011の運行時間超過が3ヶ月継続。\n\n【提案AP】No.011の担当エリアを見直し、一部配送先をNo.015またはNo.023に移管してください。月間約180千円の削減が見込まれます。',
+    categoryAp:{
+      overtime:'No.011の運行時間超過が継続しています。No.015またはNo.023への一部配送先移管で日別稼働を平準化し、10h台前半を目指してください。',
+      lowutil:'No.007の低稼働が顕在化しています。月前半の稼働確保と配送計画調整により、稼働日数増加と固定費負担軽減を図ってください。',
+      highcost:'原価単価高騰対策として、冷蔵軽貨物の一部を2〜3t車へ集約し、車格と輸送効率を見直してください。',
+      fleet:'軽貨物中心の車両構成を見直し、No.011/No.015の一部を2〜3t車へ移管することで、構成の非効率を改善してください。'
+    },
     hypoScores:{overtime:72,lowutil:65,highcost:35,fleet:20},
   },
   omiya:{name:'大宮センター',
@@ -516,6 +528,12 @@ const CENTERS = {
       {no:'No.071',type:'2〜3t',temp:'常温',theory:890,days:25,hours:8.2,status:'ok',ai:'8.2h/日と余裕のある稼働状況。No.055からの物量移管を受け入れる余力があります。',sim:{title:'No.055から移管受け入れ',before:'8.2h/日',after:'9.3h/日',saving:-70}},
     ],
     apBody:'No.055の軽微な超過が累積。\n\n【提案AP】No.055の担当配送先のうち、時間指定が厳しい2〜3件をNo.071へ移管することで月間約90千円の最適化が見込まれます。',
+    categoryAp:{
+      overtime:'No.055の運行時間超過には、No.071への時間指定案件移管が有効です。移管により日別運行時間を10.1h前後へ改善してください。',
+      lowutil:'No.041とNo.071の余力を活用し、低稼働車両の稼働率を引き上げる改善策を実行してください。',
+      highcost:'理論コスト高騰対策として、車格と原価単価の見直しを行い、必要に応じて軽貨物から2〜3t車への振替を検討してください。',
+      fleet:'軽貨物主体の構成を見直し、No.055の一部を2〜3t車へ移管して車両構成効率を改善してください。'
+    },
     hypoScores:{overtime:35,lowutil:20,highcost:40,fleet:55},
   },
   chiba:{name:'千葉センター',
@@ -525,6 +543,12 @@ const CENTERS = {
       {no:'No.052',type:'2〜3t',temp:'冷蔵',theory:870,days:25,hours:9.6,status:'mid',ai:'3ヶ月前比+0.6h/日の増加。担当エリアの配送先が増加しているか確認してください。',sim:{title:'担当エリア精査',before:'9.6h/日',after:'9.0h/日',saving:60}},
     ],
     apBody:'No.052の緩やかな超過傾向を検知。\n\n【提案AP】No.052の担当エリアを精査し、翌月も同様の傾向が続く場合は配送先の再配分を実施してください。現時点での期待削減額：月間約80千円。',
+    categoryAp:{
+      overtime:'No.052の超過傾向には担当エリアの再配分と運行条件の見直しが有効です。車両の運行時間を標準レンジへ戻してください。',
+      lowutil:'低稼働傾向の車両の稼働率改善として、No.052の配送先を最適化し、9h/日以上の安定稼働を目指してください。',
+      highcost:'理論コスト高騰対策として車格見直しを進め、冷蔵軽貨物から2〜3t車への集約を検討してください。',
+      fleet:'車両構成の非効率を改善するため、冷蔵軽貨物の一部を2〜3t車へ移管し、構成効率を高めてください。'
+    },
     hypoScores:{overtime:25,lowutil:15,highcost:30,fleet:45},
   },
   kawasaki:{name:'川崎センター',
@@ -535,6 +559,12 @@ const CENTERS = {
       {no:'No.037',type:'軽',temp:'冷蔵',theory:420,days:16,hours:6.1,status:'high',ai:'稼働日数16日と著しく少ない。月前半に稼働がほぼない状態で、固定費の垂れ流しが発生しています。需要がない場合は車両削減も検討すべきです。',sim:{title:'稼働日数改善or車両削減',before:'16日/月',after:'24日/月',saving:300}},
     ],
     apBody:'3車両の運行時間超過（13〜14h/日）が全センター最悪の乖離率の主因。\n\n【提案AP①】No.008・No.014・No.021の夜間配送移行トライアルを来月より開始。月間▲600千円が目標。\n\n【提案AP②】No.037の非稼働日の原因を確認し、稼働率70%以上を目標に改善計画を立案してください。',
+    categoryAp:{
+      overtime:'No.008/No.014/No.021の夜間配送移行トライアルで運行時間超過を抑制し、10h台前半への改善を目指してください。',
+      lowutil:'No.037の低稼働が課題です。稼働日数の増加と固定費対策として、需要の偏りを是正し稼働率を引き上げてください。',
+      highcost:'理論コスト高騰対策として車格と原価単価の見直しを行い、コスト効率の高い車両配分へ再編してください。',
+      fleet:'軽貨物中心の構成を改善するため、No.008/No.014/No.021の一部を2〜3t車へ移管し、車両構成の効率化を進めてください。'
+    },
     hypoScores:{overtime:95,lowutil:80,highcost:70,fleet:40},
   }
 };
@@ -549,6 +579,7 @@ Object.keys(CENTERS).forEach(k=>{
 
 let currentCenter='yashio', currentMonth='2026年03月';
 let selectedVeh=null;
+let selectedHypoCategory=null;
 let lineChart=null, ticketChart=null;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 
@@ -915,9 +946,9 @@ function toggleHypoCard(id,event){
   }
 }
 
-function goToAP(event){
+function goToAP(category,event){
   event.stopPropagation();
-  showStep(2);
+  showStep(2, category);
 }
 
 function renderHypos(){
@@ -939,7 +970,7 @@ function renderHypos(){
       ${vehicleSummary ? `<div class="hypo-extra">${vehicleSummary}</div>` : ''}
       <div class="hypo-meter"><div class="hypo-meter-fill" style="width:${score}%;background:${score>=60?'var(--red)':score>=40?'var(--amber)':'var(--green)'}"></div></div>
       <div class="hypo-meter-label">スコア：${score}/100　${score>=60?'→ AP立案を推奨':'→ 継続監視'}</div>
-      ${hit ? `<div class="hypo-cta"><button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="goToAP(event)">AP立案へ進む →</button></div>` : ''}
+      ${hit ? `<div class="hypo-cta"><button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="goToAP('${cat.id}',event)">AP立案へ進む →</button></div>` : ''}
     </div>`;
   }).join('');
 }
@@ -968,11 +999,14 @@ function removeConstraint(i){
 }
 
 // ===== AP =====
-function renderAP(){
+function renderAP(category){
   const d = getCurrentData();
   const c = CENTERS[currentCenter];
+  const cat = category || selectedHypoCategory;
+  selectedHypoCategory = cat || null;
   document.getElementById('ap-gap-disp').textContent = fmt(d.gap);
-  document.getElementById('ap-body').innerHTML = (c.apBody||'').replace(/\n/g,'<br>');
+  const text = cat ? (c.categoryAp?.[cat] || c.apBody) : c.apBody;
+  document.getElementById('ap-body').innerHTML = (text||'').replace(/\n/g,'<br>');
   document.getElementById('ap-result').style.display='none';
   document.getElementById('ap-reject-form').style.display='none';
   document.getElementById('ap-action-buttons').style.display='flex';
@@ -1191,13 +1225,13 @@ function submitAddTicket(){
   closeAddModal(); renderTickets(); updateTicketStats(); drawTicketChart();
 }
 
-function showStep(n){
+function showStep(n, category){
   for(let i=0;i<4;i++){
     document.getElementById('step'+i).classList.toggle('section-hidden',i!==n);
     document.getElementById('tab'+i).classList.toggle('active',i===n);
   }
   if(n===1){renderHypos();renderConstraints();}
-  if(n===2) renderAP();
+  if(n===2) renderAP(category);
   if(n===3){renderTickets();setTimeout(drawTicketChart,50);}
 }
 
