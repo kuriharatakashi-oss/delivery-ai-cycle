@@ -93,6 +93,14 @@ body>*{max-width:100vw;overflow-x:hidden}
 .hypo-card:hover{border-color:var(--blue);background:var(--blue-l)}
 .hypo-card.hit{border-color:var(--red);background:var(--red-l)}
 .hypo-card.hit .hypo-icon{color:var(--red)}
+.hypo-card.normal.collapsed .hypo-body,
+.hypo-card.normal.collapsed .hypo-meter,
+.hypo-card.normal.collapsed .hypo-meter-label,
+.hypo-card.normal.collapsed .hypo-extra,
+.hypo-card.normal.collapsed .hypo-cta{display:none}
+.hypo-toggle{font-size:12px;color:var(--green);font-weight:700;cursor:pointer;margin-bottom:10px;display:inline-block}
+.hypo-extra{margin-top:10px;font-size:12px;color:var(--t1);background:rgba(228,226,219,0.65);padding:8px 10px;border-radius:8px}
+.hypo-cta{margin-top:12px}
 .hypo-card-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .hypo-icon{font-size:18px;flex-shrink:0}
 .hypo-name{font-size:14px;font-weight:600;color:var(--t1);flex:1}
@@ -843,21 +851,95 @@ const HYPO_CATEGORIES = [
   {id:'fleet',icon:'🚛',label:'車両構成の非効率',desc:'軽貨物依存度が高く、大型化による効率化余地がある'},
 ];
 
+function getAllConstraintTexts(){
+  const common = centerCommonConstraints[currentCenter] || [];
+  const vehicleMap = vehicleSpecificConstraints[currentCenter] || {};
+  const vehicleTexts = Object.values(vehicleMap).flat().map(r=>`${r.category} ${r.reason} ${r.note||''}`);
+  return [
+    ...constraints,
+    ...common.map(r=>`${r.category} ${r.reason} ${r.note||''}`),
+    ...vehicleTexts
+  ];
+}
+
+function calculateHypoScoreBoosts(){
+  const boost = {overtime:0,lowutil:0,highcost:0,fleet:0};
+  getAllConstraintTexts().forEach(text=>{
+    const lower = text.toLowerCase();
+    if(/道幅|高さ|車格|サイズ/.test(lower)) boost.fleet += 10;
+    if(/温度帯|冷凍|冷蔵|混載/.test(lower)) boost.highcost += 10;
+    if(/時間指定|稼働日数|低稼働|空き時間|稼働率/.test(lower)) boost.lowutil += 10;
+    if(/運行時間|超過|渋滞|待ち|荷待ち/.test(lower)) boost.overtime += 10;
+  });
+  return boost;
+}
+
+function getEffectiveHypoScores(){
+  const base = CENTERS[currentCenter].hypoScores;
+  const boost = calculateHypoScoreBoosts();
+  return {
+    overtime: Math.min(100,(base.overtime||0)+boost.overtime),
+    lowutil: Math.min(100,(base.lowutil||0)+boost.lowutil),
+    highcost: Math.min(100,(base.highcost||0)+boost.highcost),
+    fleet: Math.min(100,(base.fleet||0)+boost.fleet)
+  };
+}
+
+function findHypoVehicles(catId){
+  const vehicles = getCurrentData().vehicles || [];
+  return vehicles.filter(v=>{
+    if(catId==='overtime') return v.hours >= 12;
+    if(catId==='lowutil') return v.days <= 18 || v.hours <= 7.5;
+    if(catId==='highcost') return v.theory >= 900 || (v.status==='high' && v.type==='軽');
+    if(catId==='fleet') return v.type==='軽' && v.hours > 10.5;
+    return false;
+  }).map(v=>v.no);
+}
+
+function getHypoVehicleSummary(catId){
+  const ids = findHypoVehicles(catId).slice(0,3);
+  if(!ids.length) return '';
+  const labelMap = {overtime:'運行時間超過',lowutil:'低稼働',highcost:'理論コスト高騰',fleet:'車両構成の非効率'};
+  return `【該当車両】${ids.join('・')}で${labelMap[catId]||'該当事項'}を検知`;
+}
+
+function toggleHypoCard(id,event){
+  event.stopPropagation();
+  const card = document.getElementById('hypo-'+id);
+  if(!card) return;
+  card.classList.toggle('collapsed');
+  const button = card.querySelector('.hypo-toggle');
+  if(button){
+    const normalCount = HYPO_CATEGORIES.filter(cat=> getEffectiveHypoScores()[cat.id] < 60).length;
+    button.textContent = card.classList.contains('collapsed') ? `✓ 正常カテゴリ（${normalCount}件）を表示` : '✓ 正常カテゴリを閉じる';
+  }
+}
+
+function goToAP(event){
+  event.stopPropagation();
+  showStep(2);
+}
+
 function renderHypos(){
-  const c = CENTERS[currentCenter];
-  const scores = c.hypoScores;
+  const scores = getEffectiveHypoScores();
+  const normalCount = HYPO_CATEGORIES.filter(cat=> (scores[cat.id]||0) < 60).length;
   document.getElementById('hypoContent').innerHTML = HYPO_CATEGORIES.map(cat=>{
     const score = scores[cat.id]||0;
     const hit = score>=60;
-    return `<div class="hypo-card ${hit?'hit':''}" onclick="this.classList.toggle('hit')">
+    const vehicleSummary = hit ? getHypoVehicleSummary(cat.id) : '';
+    const cardClass = `hypo-card ${hit?'hit':'normal collapsed'}`;
+    return `<div class="${cardClass}" id="hypo-${cat.id}">
       <div class="hypo-card-header">
         <span class="hypo-icon">${cat.icon}</span>
         <span class="hypo-name">${cat.label}</span>
         <span class="status-pill ${hit?'s-high':'s-ok'}" style="font-size:11px">${hit?'⚠ 該当':'✓ 正常'}</span>
       </div>
+      ${!hit ? `<div class="hypo-toggle" onclick="toggleHypoCard('${cat.id}',event)">✓ 正常カテゴリ（${normalCount}件）を表示</div>` : ''}
       <div class="hypo-body">${cat.desc}</div>
+      ${vehicleSummary ? `<div class="hypo-extra">${vehicleSummary}</div>` : ''}
       <div class="hypo-meter"><div class="hypo-meter-fill" style="width:${score}%;background:${score>=60?'var(--red)':score>=40?'var(--amber)':'var(--green)'}"></div></div>
       <div class="hypo-meter-label">スコア：${score}/100　${score>=60?'→ AP立案を推奨':'→ 継続監視'}</div>
+      ${hit ? `<div class="hypo-cta"><button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="goToAP(event)">AP立案へ進む →</button></div>` : ''}
     </div>`;
   }).join('');
 }
@@ -872,9 +954,18 @@ function renderConstraints(){
 }
 function addConstraint(){
   const v=document.getElementById('newConstraint').value.trim();
-  if(v){constraints.push(v);renderConstraints();document.getElementById('newConstraint').value='';}
+  if(v){
+    constraints.push(v);
+    renderConstraints();
+    renderHypos();
+    document.getElementById('newConstraint').value='';
+  }
 }
-function removeConstraint(i){constraints.splice(i,1);renderConstraints();}
+function removeConstraint(i){
+  constraints.splice(i,1);
+  renderConstraints();
+  renderHypos();
+}
 
 // ===== AP =====
 function renderAP(){
