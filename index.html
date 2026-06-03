@@ -621,13 +621,10 @@ function selectVeh(i){
 
   const sim = base.sim || {title:'シミュレーション',before:v.hours+'h/日',after:(v.hours*0.85).toFixed(1)+'h/日',saving:100};
 
-  // format accumulated constraints
-  const constraintHtml = formatAccumulatedConstraints();
-
   document.getElementById('right-panel-content').innerHTML = `
     <div class="ai-comment">
       <div class="ai-comment-title"><i class="ti ti-brain"></i> AI分析コメント</div>
-      <div class="ai-comment-body">${base.ai || '選択された車両の分析データを取得中...'}${constraintHtml}</div>
+      <div class="ai-comment-body">AI分析中...</div>
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">日別運行時間（当月）</div>
@@ -641,6 +638,8 @@ function selectVeh(i){
       <div class="sim-row"><span>月間コスト削減額（推定）</span><span class="sim-val ${sim.saving>0?'positive':''}">${sim.saving>0?'▲'+sim.saving.toLocaleString()+'千円':'±0（現状維持）'}</span></div>
       <button class="sim-btn" onclick="applySimulation('${v.no}','${sim.title}',${sim.saving})"><i class="ti ti-check"></i> このプランをAPとして採用する</button>
     </div>`;
+
+  loadClaudeAnalysis(i, v, d);
 
   // draw line chart
   setTimeout(()=>{
@@ -658,6 +657,32 @@ function selectVeh(i){
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},scales:{x:{ticks:{font:{size:10},maxTicksLimit:10}},y:{ticks:{font:{size:10}}}}}
     });
   },50);
+}
+
+async function loadClaudeAnalysis(index, vehicle, data){
+  const contentEl = document.querySelector('.ai-comment-body');
+  if(contentEl) contentEl.textContent = 'AI分析中...';
+
+  const common = centerCommonConstraints[currentCenter] || [];
+  const vehicleSpecific = (vehicleSpecificConstraints[currentCenter] || {})[vehicle.no] || [];
+  const otherVehicles = data.vehicles.filter(v=>v.no!==vehicle.no).map(v=>`- ${v.no} (${v.type}/${v.temp||'―'}) 理論:${v.theory.toLocaleString()}円 稼働日数:${v.days}日 運行時間:${v.hours}h`).join('\n');
+  const commonText = common.length ? common.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
+  const vehicleText = vehicleSpecific.length ? vehicleSpecific.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
+
+  const prompt = `あなたは物流コスト改善の専門AIです。以下の車両データと制約条件を分析し、現状の課題と改善提案を150字程度で簡潔に日本語で述べてください。制約条件がある場合は必ず考慮し、その制約を踏まえた上での現実的な改善策を提案してください。\n\nセンター名: ${CENTERS[currentCenter].name}\n対象年月: ${currentMonth}\n対象車両: ${vehicle.no}\n車格: ${vehicle.type}\n温度帯: ${vehicle.temp || '不明'}\n理論コスト: ${vehicle.theory.toLocaleString()}円\n稼働日数: ${vehicle.days}日\n運行時間: ${vehicle.hours}h\n\nセンター共通の蓄積済み制約条件:\n${commonText}\n\n対象車両の蓄積済み個別制約条件:\n${vehicleText}\n\n同センターの他車両との比較データ:\n${otherVehicles}`;
+
+  try{
+    const response = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',messages:[{role:'user',content:prompt}]})});
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    const text = result.completion || result?.output?.text || '';
+    if(selectedVeh===index){
+      if(contentEl) contentEl.textContent = text || '分析を取得できませんでした';
+    }
+  }catch(e){
+    if(selectedVeh===index && contentEl) contentEl.textContent = '分析を取得できませんでした';
+    console.error('Claude API error',e);
+  }
 }
 
 function formatAccumulatedConstraints(){
