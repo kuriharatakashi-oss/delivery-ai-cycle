@@ -1794,20 +1794,22 @@ async function loadTicketAI(ticket){
 参照データ（過去チケット）:
 ${JSON.stringify(allRef, null, 2)}
 
+各項目は1〜2文、合計150字以内で簡潔に回答してください。箇条書きは使わず、各セクションを短く端的にまとめてください。
+
 以下の形式で回答してください：
 【類似事例の概要】
-（類似する過去事例を1〜2件、概要を2〜3文で。事例がない場合は一般的な同種課題の事例を提示）
+（類似事例を1〜2文で）
 【結果・効果】
-（類似事例の結果や達成効果を2〜3文で）
+（効果を1〜2文で）
 【推奨アクション】
-（現在のチケットに対する具体的な推奨アクションを2〜3文で）
+（推奨を1文で）
 
 プレーンテキストのみ。HTMLタグ・マークダウン・装飾は不可。`;
   try{
     const res = await fetch('https://anthropic-proxy.kurihara-takashi.workers.dev',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':getStoredApiKey(),'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:prompt}]})
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const result = await res.json();
