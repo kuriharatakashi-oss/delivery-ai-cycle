@@ -407,13 +407,27 @@ let currentCenter='yashio', currentMonth='2026年03月';
 let selectedVeh=null;
 let lineChart=null, ticketChart=null;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
-let tickets=[
-  {id:1,title:'No.062・No.063 運行時間超過の原因究明',status:'wip',owner:'田中',due:'2026/04/10',next:'担当エリアの時間指定確認中'},
-  {id:2,title:'No.088 低稼働改善（目標8h/日）',status:'open',owner:'鈴木',due:'2026/04/15',next:''},
-  {id:3,title:'軽貨物→2〜3t車 一部移管計画',status:'open',owner:'',due:'2026/04/30',next:''},
-  {id:4,title:'夜間配送トライアル（川崎）',status:'done',owner:'佐藤',due:'2026/03/31',next:'完了。次月より本格導入'},
-  {id:5,title:'No.007 稼働日数改善',status:'over',owner:'高橋',due:'2026/03/20',next:''},
-];
+
+// center-specific tickets
+const centerTickets = {
+  yashio:[
+    {id:Date.now()+1,title:'No.062・No.063 運行時間超過の原因究明',status:'wip',owner:'田中',due:'2026/04/10',next:'担当エリアの時間指定確認中'},
+    {id:Date.now()+2,title:'No.088 低稼働改善（目標8h/日）',status:'open',owner:'鈴木',due:'2026/04/15',next:''},
+  ],
+  utsunomiya:[
+    {id:Date.now()+11,title:'No.011 運行時間超過対応',status:'open',owner:'佐藤',due:'2026/04/12',next:''},
+  ],
+  omiya:[
+    {id:Date.now()+21,title:'No.055 時間指定再配分',status:'open',owner:'',due:'2026/04/20',next:''},
+  ],
+  chiba:[
+    {id:Date.now()+31,title:'No.052 担当エリア精査',status:'wip',owner:'高橋',due:'2026/04/18',next:'データ収集中'},
+  ],
+  kawasaki:[
+    {id:Date.now()+41,title:'夜間配送トライアル（川崎）',status:'done',owner:'佐藤',due:'2026/03/31',next:'完了。次月より本格導入'},
+    {id:Date.now()+42,title:'No.037 稼働日数改善',status:'over',owner:'高橋',due:'2026/03/20',next:''},
+  ],
+};
 
 function fmt(n){return n.toLocaleString()+'千円';}
 
@@ -549,7 +563,8 @@ function selectVeh(i){
 }
 
 function applySimulation(vno, title, saving){
-  tickets.unshift({id:Date.now(),title:`${vno}：${title}`,status:'open',owner:'',due:'',next:''});
+  const arr = centerTickets[currentCenter] || (centerTickets[currentCenter]=[]);
+  arr.unshift({id:Date.now(),title:`${vno}：${title}`,status:'open',owner:'',due:'',next:''});
   renderTickets();
   updateTicketStats();
   alert(`「${title}」をAPとして採用しました。アクション管理に追加されました。`);
@@ -618,7 +633,8 @@ const STATUS_CLS={open:'st-open',wip:'st-wip',done:'st-done',over:'st-over'};
 
 function renderTickets(){
   const filter = document.getElementById('tk-filter').value;
-  const list = filter==='all'?tickets:tickets.filter(t=>t.status===filter);
+  const all = centerTickets[currentCenter] || [];
+  const list = filter==='all' ? all : all.filter(t=>t.status===filter);
   document.getElementById('ticketList').innerHTML = list.map(t=>`
     <div class="ticket">
       <div class="ticket-header">
@@ -641,33 +657,38 @@ function renderTickets(){
 }
 
 function updateTicketStatus(id,status){
-  const t=tickets.find(x=>x.id===id);
+  const arr = centerTickets[currentCenter] || [];
+  const t=arr.find(x=>x.id===id);
   if(t){t.status=status;renderTickets();}
 }
 function updateTicketNext(id,val){
-  const t=tickets.find(x=>x.id===id);
+  const arr = centerTickets[currentCenter] || [];
+  const t=arr.find(x=>x.id===id);
   if(t) t.next=val;
 }
 function addTicket(){
-  tickets.unshift({id:Date.now(),title:'新規チケット',status:'open',owner:'',due:'',next:''});
+  const arr = centerTickets[currentCenter] || (centerTickets[currentCenter]=[]);
+  arr.unshift({id:Date.now(),title:'新規チケット',status:'open',owner:'',due:'',next:''});
   renderTickets();
 }
 function updateTicketStats(){
-  document.getElementById('tk-total').textContent=tickets.length;
-  document.getElementById('tk-open').textContent=tickets.filter(t=>t.status==='open').length;
-  document.getElementById('tk-wip').textContent=tickets.filter(t=>t.status==='wip').length;
-  document.getElementById('tk-over').textContent=tickets.filter(t=>t.status==='over').length;
+  const arr = centerTickets[currentCenter] || [];
+  document.getElementById('tk-total').textContent=arr.length;
+  document.getElementById('tk-open').textContent=arr.filter(t=>t.status==='open').length;
+  document.getElementById('tk-wip').textContent=arr.filter(t=>t.status==='wip').length;
+  document.getElementById('tk-over').textContent=arr.filter(t=>t.status==='over').length;
 }
 
 function drawTicketChart(){
   const ctx = document.getElementById('ticketChart');
   if(!ctx) return;
   if(ticketChart){ticketChart.destroy();ticketChart=null;}
+  const arr = centerTickets[currentCenter] || [];
   const counts=[
-    tickets.filter(t=>t.status==='open').length,
-    tickets.filter(t=>t.status==='wip').length,
-    tickets.filter(t=>t.status==='done').length,
-    tickets.filter(t=>t.status==='over').length,
+    arr.filter(t=>t.status==='open').length,
+    arr.filter(t=>t.status==='wip').length,
+    arr.filter(t=>t.status==='done').length,
+    arr.filter(t=>t.status==='over').length,
   ];
   ticketChart = new Chart(ctx,{
     type:'doughnut',
