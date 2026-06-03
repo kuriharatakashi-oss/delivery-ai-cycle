@@ -636,13 +636,14 @@ function selectVeh(i){
 
   const sim = base.sim || {title:'シミュレーション',before:v.hours+'h/日',after:(v.hours*0.85).toFixed(1)+'h/日',saving:100};
   const constraintHtml = formatAccumulatedConstraints();
-  const initialComment = hasApiKey() ? 'AI分析中...' : `${base.ai || '選択された車両の分析データを取得中...'}${constraintHtml}`;
+  const initialComment = hasApiKey() ? 'AI分析中...' : (base.ai || '選択された車両の分析データを取得中...');
 
   document.getElementById('right-panel-content').innerHTML = `
     <div class="ai-comment">
       <div class="ai-comment-title"><i class="ti ti-brain"></i> AI分析コメント</div>
       <div class="ai-comment-body">${initialComment}</div>
     </div>
+    ${constraintHtml}
     <div style="margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">日別運行時間（当月）</div>
       <div class="chart-wrap"><canvas id="lineChartCanvas"></canvas></div>
@@ -657,7 +658,7 @@ function selectVeh(i){
     </div>`;
 
   if(hasApiKey()){
-    loadClaudeAnalysis(i, v, d, `${base.ai || '選択された車両の分析データを取得中...'}${constraintHtml}`);
+    loadClaudeAnalysis(i, v, d, base.ai || '選択された車両の分析データを取得中...');
   }
 
   // draw line chart
@@ -764,9 +765,9 @@ function formatAccumulatedConstraints(){
   const vehicle = selectedVeh!==null ? (vehicleSpecificConstraints[currentCenter]?.[getCurrentData().vehicles[selectedVeh]?.no] || []) : [];
   const all = [...common, ...vehicle];
   if(all.length===0) return '';
-  return `<br><br><div style="border-top:1px solid rgba(0,0,0,0.1);padding-top:8px;margin-top:8px"><strong style="color:var(--t1)">⚠ 蓄積済み制約条件</strong><div style="font-size:12px;margin-top:4px;color:var(--t1)">
-    ${common.map(r=>`<div>・【共通】【${r.category}】 ${r.reason}${r.note?'<br>&nbsp;&nbsp;└ 補足：'+r.note:''}</div>`).join('')}
-    ${vehicle.map(r=>`<div>・【車両別】【${r.category}】 ${r.reason}${r.note?'<br>&nbsp;&nbsp;└ 補足：'+r.note:''}</div>`).join('')}
+  return `<div style="border-top:1px solid rgba(0,0,0,0.1);padding-top:12px;margin-top:12px;margin-bottom:12px"><strong style="color:var(--t1)">⚠ 蓄積済み制約条件</strong><div style="font-size:12px;margin-top:6px;color:var(--t1)">
+    ${common.map(r=>`<div style="margin-bottom:4px">・【共通】【${r.category}】 ${r.reason}${r.note?'<br>&nbsp;&nbsp;└ 補足：'+r.note:''}</div>`).join('')}
+    ${vehicle.map(r=>`<div style="margin-bottom:4px">・【車両別】【${r.category}】 ${r.reason}${r.note?'<br>&nbsp;&nbsp;└ 補足：'+r.note:''}</div>`).join('')}
   </div></div>`;
 }
 
