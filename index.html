@@ -2002,13 +2002,50 @@ function selectCourse(courseId){
   }
 }
 
+// 日ごとに異なる稼働時刻を決定論的に生成
+function getDayTiming(course, day){
+  const idNum = parseInt(course.id.split('-')[1]||'1');
+  let s = ((idNum*37 + day*97 + Math.round(course.endH*13)) % 65537 + 1)>>>0;
+  const rand = ()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; };
+  const v1=rand(), v2=rand(), v3=rand(), v4=rand();
+  const eff = course.distance / course.deliveries;
+  // コースの効率に応じて早上がり・遅延の確率を調整
+  const earlyProb  = eff < 7  ? 0.12 : 0.04;  // 効率良→早上がり多め
+  const delayProb  = eff >= 12 ? 0.15 : 0.05;  // 要見直し→遅延多め
+  const afternoonProb = 0.06;
+  let prepStart, acEnd, returnDelta;
+  if(v1 < earlyProb){
+    // 早上がり（月2〜3日）
+    prepStart = 6.0 + v2 * 1.0;
+    acEnd     = 13.5 + v3 * 1.5;
+    returnDelta = 0.33 + v4 * 0.25;
+  } else if(v1 < earlyProb + delayProb){
+    // 遅延（月2〜3日）
+    prepStart = 6.0 + v2 * 0.5;
+    acEnd     = 20.0 + v3 * 1.0;
+    returnDelta = 0.33 + v4 * 0.25;
+  } else if(v1 < earlyProb + delayProb + afternoonProb){
+    // 午後から稼働（月1〜2日）
+    prepStart = 9.5 + v2 * 1.5;
+    acEnd     = 17.0 + v3 * 2.0;
+    returnDelta = 0.33 + v4 * 0.25;
+  } else {
+    // 通常
+    prepStart = 6.0 + v2 * 1.5;
+    acEnd     = 16.0 + v3 * 4.0;
+    returnDelta = 0.33 + v4 * 0.25;
+  }
+  const acStart   = prepStart + 1.0;
+  const returnEnd = Math.min(acEnd + returnDelta, 22.0);
+  const r = x => Math.round(x * 4) / 4; // 15分単位に丸め
+  return {prepStart:r(prepStart), acStart:r(acStart), acEnd:r(acEnd), returnEnd:r(returnEnd)};
+}
+
 function renderCourseTimeline(course){
   const totalDays = 30; // June 2026
   const activeDays = course.activeDays||[];
-  // 3ブロック構成: 青（準備）6:00-7:00 / オレンジ（AC）7:00-endH / 青（帰着）endH-endH+0.5
-  const prepS=6.0, acS=7.0, acE=course.endH, retE=acE+0.5;
   const pct=h=>(h/24*100).toFixed(2)+'%';
-  const wid=(s,e)=>((e-s)/24*100).toFixed(2)+'%';
+  const wid=(s,e)=>((Math.max(0,e-s))/24*100).toFixed(2)+'%';
   const hourTicks=[0,3,6,9,12,15,18,21,24];
   const headerHtml=`<div style="display:flex;align-items:center;margin-bottom:3px">
     <div style="width:38px;flex-shrink:0"></div>
@@ -2019,22 +2056,25 @@ function renderCourseTimeline(course){
   const rowsHtml=Array.from({length:totalDays},(_,idx)=>{
     const day=idx+1;
     const isActive=activeDays.includes(day);
+    if(!isActive) return `<div style="display:flex;align-items:center;margin-bottom:2px">
+      <div style="width:38px;font-size:10px;color:var(--t3);text-align:right;padding-right:6px;flex-shrink:0">${day}日</div>
+      <div style="flex:1;height:14px;background:var(--bg3);border-radius:2px"></div>
+    </div>`;
+    const {prepStart,acStart,acEnd,returnEnd}=getDayTiming(course,day);
     return `<div style="display:flex;align-items:center;margin-bottom:2px">
       <div style="width:38px;font-size:10px;color:var(--t2);text-align:right;padding-right:6px;flex-shrink:0">${day}日</div>
       <div style="flex:1;height:14px;background:var(--bg3);position:relative;border-radius:2px">
-        ${isActive?`
-          <div style="position:absolute;left:${pct(prepS)};width:${wid(prepS,acS)};height:10px;top:2px;background:var(--blue);border-radius:2px;opacity:.9" title="出発準備 6:00〜7:00"></div>
-          <div style="position:absolute;left:${pct(acS)};width:${wid(acS,acE)};height:10px;top:2px;background:#F97316;border-radius:2px;opacity:.9" title="AC業務 7:00〜${acE}時"></div>
-          <div style="position:absolute;left:${pct(acE)};width:${wid(acE,retE)};height:10px;top:2px;background:var(--blue);border-radius:2px;opacity:.9" title="帰着 ${acE}〜${retE}時"></div>
-        `:''}
+        <div style="position:absolute;left:${pct(prepStart)};width:${wid(prepStart,acStart)};height:10px;top:2px;background:var(--blue);border-radius:2px;opacity:.9" title="準備 ${prepStart}〜${acStart}時"></div>
+        <div style="position:absolute;left:${pct(acStart)};width:${wid(acStart,acEnd)};height:10px;top:2px;background:#F97316;border-radius:2px;opacity:.9" title="AC業務 ${acStart}〜${acEnd}時"></div>
+        <div style="position:absolute;left:${pct(acEnd)};width:${wid(acEnd,returnEnd)};height:10px;top:2px;background:var(--blue);border-radius:2px;opacity:.9" title="帰着 ${acEnd}〜${returnEnd}時"></div>
       </div>
     </div>`;
   }).join('');
   document.getElementById('timelineContent').innerHTML=`
     <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;margin-bottom:8px;color:var(--t2)">
-      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:var(--blue);margin-right:4px;vertical-align:middle"></span>自センター（準備6:00〜7:00・帰着30分）</span>
-      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:#F97316;margin-right:4px;vertical-align:middle"></span>AC業務（7:00〜${acE}時）</span>
-      <span style="color:var(--t3)">帰着 ${retE}時</span>
+      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:var(--blue);margin-right:4px;vertical-align:middle"></span>自センター（準備・帰着）</span>
+      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:#F97316;margin-right:4px;vertical-align:middle"></span>AC業務</span>
+      <span style="color:var(--t3);font-size:11px">日ごとにバラつきあり／hover で時刻確認</span>
     </div>
     ${headerHtml}${rowsHtml}`;
 }
