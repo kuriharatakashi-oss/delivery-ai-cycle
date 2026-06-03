@@ -214,6 +214,20 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
 .kanban-card:active{cursor:grabbing}
 .kc-title{font-weight:700;margin-bottom:4px}
 .ai-badge{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);margin-bottom:5px}
+/* ticket detail modal AI sections */
+.tk-ai-section{padding:10px 14px;margin-bottom:8px;border-radius:0 var(--r) var(--r) 0}
+.tk-ai-similar{border-left:3px solid var(--blue);background:var(--blue-l)}
+.tk-ai-result{border-left:3px solid var(--green);background:var(--green-l)}
+.tk-ai-action{border-left:3px solid var(--amber);background:var(--amber-l)}
+.tk-ai-label{font-size:11px;font-weight:700;margin-bottom:5px}
+.tk-ai-similar .tk-ai-label{color:var(--blue-d)}
+.tk-ai-result .tk-ai-label{color:var(--green)}
+.tk-ai-action .tk-ai-label{color:var(--amber)}
+.tk-ai-text{font-size:13px;line-height:1.7}
+.tk-ai-similar .tk-ai-text{color:var(--blue)}
+.tk-ai-result .tk-ai-text{color:var(--green)}
+.tk-ai-action .tk-ai-text{color:var(--amber)}
+.modal-row select{flex:1;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2);color:var(--t1);outline:none;font-size:13px}
 .kc-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:6px}
 .kc-next{font-size:13px;color:var(--t1)}
 
@@ -533,6 +547,35 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
       <button class="btn" onclick="clearApiKey()" type="button">削除</button>
       <button class="btn btn-primary" onclick="saveApiKey()" type="button">保存</button>
     </div>
+  </div>
+</div>
+
+<!-- Ticket Detail Modal -->
+<div id="ticketModal" class="modal-overlay" onclick="closeTicketModal()">
+  <div class="modal-box" style="max-width:620px;max-height:85vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:700;color:var(--t1)">チケット詳細</div>
+      <button class="btn" style="padding:4px 10px;font-size:12px" onclick="closeTicketModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-row"><label>タイトル</label><input id="tm-title-input" type="text" placeholder="タイトル"></div>
+    <div class="modal-row">
+      <label>ステータス</label>
+      <select id="tm-status">
+        <option value="open">未対応</option>
+        <option value="wip">対応中</option>
+        <option value="done">完了</option>
+        <option value="over">期限超過</option>
+      </select>
+    </div>
+    <div class="modal-row"><label>担当者</label><input id="tm-owner" type="text" placeholder="担当者名"></div>
+    <div class="modal-row"><label>期限</label><input id="tm-due" type="text" placeholder="YYYY/MM/DD"></div>
+    <div class="modal-row"><label>ネクスト</label><textarea id="tm-next" rows="3" placeholder="ネクストアクション"></textarea></div>
+    <div class="modal-actions" style="border-bottom:1px solid var(--bl);padding-bottom:14px;margin-bottom:14px">
+      <button class="btn" onclick="closeTicketModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveTicketModal()"><i class="ti ti-device-floppy"></i> 保存</button>
+    </div>
+    <div class="panel-title" style="margin-bottom:10px"><i class="ti ti-brain" style="color:var(--blue)"></i>AI類似事例・推奨アクション</div>
+    <div id="tm-ai-content"><div style="color:var(--t3);font-size:13px">読み込み中...</div></div>
   </div>
 </div>
 
@@ -1635,6 +1678,7 @@ function renderTickets(){
     card.draggable = true;
     card.id = 't-'+t.id;
     card.ondragstart = (e)=>dragStart(e,t.id);
+    card.onclick = ()=>openTicketModal(t.id);
     card.innerHTML = `
       ${t.isAiProposal ? '<div><span class="ai-badge">🤖 AI提案</span></div>' : ''}
       <div class="kc-title">${t.title}</div>
@@ -1686,6 +1730,110 @@ function drawTicketChart(){
     data:{labels:['未対応','対応中','完了','期限超過'],datasets:[{data:counts,backgroundColor:['#FAEEDA','#E6F1FB','#EAF3DE','#FCEBEB'],borderColor:['#FAC775','#B5D4F4','#A8D177','#F7C1C1'],borderWidth:2}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}
   });
+}
+
+// ===== TICKET DETAIL MODAL =====
+let currentTicketId = null;
+
+function openTicketModal(id){
+  currentTicketId = id;
+  const arr = centerTickets[currentCenter] || [];
+  const t = arr.find(x=>String(x.id)===String(id));
+  if(!t) return;
+  document.getElementById('tm-title-input').value = t.title||'';
+  document.getElementById('tm-status').value = t.status||'open';
+  document.getElementById('tm-owner').value = t.owner||'';
+  document.getElementById('tm-due').value = t.due||'';
+  document.getElementById('tm-next').value = t.next||'';
+  document.getElementById('ticketModal').style.display = 'flex';
+  const aiEl = document.getElementById('tm-ai-content');
+  if(hasApiKey()){
+    aiEl.innerHTML='<div style="color:var(--t2);font-size:13px">AI分析中...</div>';
+    loadTicketAI(t);
+  } else {
+    aiEl.innerHTML='<div style="color:var(--t3);font-size:13px">APIキーを設定するとAI類似事例分析が有効になります。</div>';
+  }
+}
+
+function closeTicketModal(){
+  document.getElementById('ticketModal').style.display='none';
+  currentTicketId=null;
+}
+
+function saveTicketModal(){
+  if(!currentTicketId) return;
+  const arr = centerTickets[currentCenter]||[];
+  const t = arr.find(x=>String(x.id)===String(currentTicketId));
+  if(!t) return;
+  const title = document.getElementById('tm-title-input').value.trim();
+  if(title) t.title=title;
+  t.status=document.getElementById('tm-status').value;
+  t.owner=document.getElementById('tm-owner').value.trim();
+  t.due=document.getElementById('tm-due').value.trim();
+  t.next=document.getElementById('tm-next').value.trim();
+  closeTicketModal();
+  renderTickets();
+}
+
+async function loadTicketAI(ticket){
+  const el = document.getElementById('tm-ai-content');
+  if(!el) return;
+  // 全センターのチケットを参照データとして収集
+  const allRef = Object.entries(centerTickets).flatMap(([ck,tickets])=>
+    (tickets||[]).filter(x=>String(x.id)!==String(ticket.id))
+      .map(x=>({title:x.title, status:STATUS_LABELS[x.status]||x.status, next:x.next||'なし', center:CENTERS[ck]?.name||ck}))
+  ).slice(0,20);
+  const prompt = `あなたは物流コスト改善の専門AIです。以下のチケット内容と類似する過去の事例を探し、分析してください。
+
+対象チケット：
+タイトル: ${ticket.title}
+ステータス: ${STATUS_LABELS[ticket.status]||ticket.status}
+ネクストアクション: ${ticket.next||'なし'}
+センター: ${CENTERS[currentCenter]?.name||currentCenter}
+
+参照データ（過去チケット）:
+${JSON.stringify(allRef, null, 2)}
+
+以下の形式で回答してください：
+【類似事例の概要】
+（類似する過去事例を1〜2件、概要を2〜3文で。事例がない場合は一般的な同種課題の事例を提示）
+【結果・効果】
+（類似事例の結果や達成効果を2〜3文で）
+【推奨アクション】
+（現在のチケットに対する具体的な推奨アクションを2〜3文で）
+
+プレーンテキストのみ。HTMLタグ・マークダウン・装飾は不可。`;
+  try{
+    const res = await fetch('https://anthropic-proxy.kurihara-takashi.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':getStoredApiKey(),'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result = await res.json();
+    const text = result.content?.[0]?.text||'';
+    if(el && currentTicketId!==null) el.innerHTML=renderTicketAISections(cleanHtmlText(text));
+  }catch(e){
+    if(el) el.innerHTML='<div style="color:var(--t2);font-size:13px">AI分析の取得に失敗しました。</div>';
+    console.error('[TicketAI]',e);
+  }
+}
+
+function renderTicketAISections(text){
+  if(!text) return '';
+  const defs=[
+    {marker:'【類似事例の概要】',next:'【結果・効果】',cls:'tk-ai-similar',icon:'📋',label:'類似事例の概要'},
+    {marker:'【結果・効果】',next:'【推奨アクション】',cls:'tk-ai-result',icon:'✅',label:'結果・効果'},
+    {marker:'【推奨アクション】',next:null,cls:'tk-ai-action',icon:'💡',label:'推奨アクション'},
+  ];
+  let html='';
+  defs.forEach(d=>{
+    if(!text.includes(d.marker)) return;
+    const after=(text.split(d.marker)[1]||'');
+    const content=d.next?(after.split(d.next)[0]||'').trim():after.trim();
+    if(content) html+=`<div class="tk-ai-section ${d.cls}"><div class="tk-ai-label">${d.icon} ${d.label}</div><div class="tk-ai-text">${content.replace(/\n/g,'<br>')}</div></div>`;
+  });
+  return html||`<div style="font-size:13px;color:var(--t2)">${text.replace(/\n/g,'<br>')}</div>`;
 }
 
 function dragStart(e,id){
