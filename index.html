@@ -141,6 +141,23 @@ body>*{max-width:100vw;overflow-x:hidden}
 .stat-label{font-size:11px;color:var(--t2);margin-top:3px}
 .chart-wrap-sm{position:relative;height:140px}
 
+/* vehicle constraint panel */
+.vcp-row>td{padding:0!important;background:var(--bg2);border-bottom:1px solid var(--bl);cursor:default}
+.vcp-row:hover>td{background:var(--bg2)!important;cursor:default}
+.vcp-tags{display:flex;flex-wrap:wrap;gap:4px;padding:5px 10px}
+.vcp-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b)}
+.vcp-tag .del{cursor:pointer;opacity:.6;font-size:11px}
+.vcp-tag .del:hover{opacity:1}
+.vcp-panel{padding:8px 10px 10px;display:none}
+.vcp-panel.open{display:block}
+.vcp-tags+.vcp-panel.open{border-top:1px dashed var(--bl)}
+.vcp-quick{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.vcp-qbtn{padding:3px 10px;border-radius:99px;font-size:11px;background:var(--bg);border:1px solid var(--bm);cursor:pointer;color:var(--t1)}
+.vcp-qbtn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.vcp-input-row{display:flex;gap:6px;align-items:center}
+.vcp-add-btn{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:var(--bg);border:1px solid var(--blue-b);cursor:pointer;color:var(--blue);white-space:nowrap}
+.vcp-add-btn:hover{background:var(--blue-l)}
+
 /* constraint */
 .constraint-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:99px;font-size:12px;background:var(--red-l);color:var(--red);border:1px solid var(--red-b);margin:3px}
 .constraint-tag .del{cursor:pointer;opacity:.6}
@@ -307,7 +324,7 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
       <div class="veh-wrap">
         <table class="veh-table">
           <thead><tr>
-            <th>端末No</th><th>車格</th><th>温度帯</th><th>理論コスト</th><th>稼働日数</th><th>運行時間/日</th><th>状態</th>
+            <th>端末No</th><th>車格</th><th>温度帯</th><th>理論コスト</th><th>稼働日数</th><th>運行時間/日</th><th>状態</th><th></th>
           </tr></thead>
           <tbody id="vehBody"></tbody>
         </table>
@@ -582,6 +599,7 @@ let selectedVeh=null;
 let selectedHypoCategory=null;
 let lineChart=null, ticketChart=null;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
+let expandedConstraintVehs = new Set();
 
 // center-common accumulated constraints
 const centerCommonConstraints = {
@@ -676,12 +694,18 @@ function updateSearchBar(){
 
 function renderVehTable(){
   const d = getCurrentData();
+  const vcMap = vehicleSpecificConstraints[currentCenter] || {};
   document.getElementById('vehBody').innerHTML = d.vehicles.map((v,i)=>{
+    const vc = vcMap[v.no] || [];
     const pillCls = v.status==='high'?'s-high':v.status==='mid'?'s-mid':'s-ok';
     const icon = v.status==='high'?'⚠':'ℹ';
     const pillTxt = v.status==='high'?`${icon} 要確認`:v.status==='mid'?`${icon} 注意`:'✓ 正常';
     const barW = Math.round(v.hours/15*80);
     const barCol = v.status==='high'?'var(--red)':v.status==='mid'?'var(--amber)':'var(--blue)';
+    const isOpen = expandedConstraintVehs.has(v.no);
+    const vcpHidden = vc.length===0 && !isOpen;
+    const tagsHtml = vc.map((c,j)=>`<span class="vcp-tag">${c.category}：${c.reason}<span class="del" onclick="removeVehConstraint('${v.no}',${j},event)">×</span></span>`).join('');
+    const quickBtns = QUICK_CONSTRAINTS.map((q,qi)=>`<button class="vcp-qbtn" onclick="applyQuickConstraint('${v.no}',${qi},event)">${q.label}</button>`).join('');
     return `<tr onclick="selectVeh(${i})" id="vrow${i}">
       <td style="font-weight:700">${v.no}</td>
       <td>${v.type}</td>
@@ -697,14 +721,73 @@ function renderVehTable(){
         </div>
       </td>
       <td><span class="status-pill ${pillCls}">${pillTxt}</span></td>
+      <td><button class="vcp-add-btn" onclick="toggleVehConstraint('${v.no}',event)">＋制約</button></td>
+    </tr>
+    <tr class="vcp-row" id="vcprow-${v.no}"${vcpHidden?' style="display:none"':''}>
+      <td colspan="8">
+        ${tagsHtml?`<div class="vcp-tags">${tagsHtml}</div>`:''}
+        <div class="vcp-panel${isOpen?' open':''}" id="vcppanel-${v.no}">
+          <div class="vcp-quick">${quickBtns}</div>
+          <div class="vcp-input-row">
+            <input type="text" id="vcp-input-${v.no}" placeholder="自由記述で制約を入力…" style="flex:1;min-width:0;font-size:12px" onkeydown="if(event.key==='Enter')addVehConstraint('${v.no}',event)">
+            <button class="btn btn-primary" style="padding:5px 12px;font-size:12px;white-space:nowrap" onclick="addVehConstraint('${v.no}',event)">追加</button>
+          </div>
+        </div>
+      </td>
     </tr>`;
   }).join('');
 
-  // re-highlight selected
   if(selectedVeh!==null){
     const row = document.getElementById('vrow'+selectedVeh);
     if(row) row.classList.add('selected');
   }
+}
+
+function toggleVehConstraint(vno, event){
+  event.stopPropagation();
+  const expanding = !expandedConstraintVehs.has(vno);
+  if(expanding) expandedConstraintVehs.add(vno); else expandedConstraintVehs.delete(vno);
+  const panel = document.getElementById('vcppanel-'+vno);
+  if(panel) panel.classList.toggle('open', expanding);
+  const vcpRow = document.getElementById('vcprow-'+vno);
+  if(vcpRow){
+    const vc = (vehicleSpecificConstraints[currentCenter]||{})[vno]||[];
+    vcpRow.style.display = (vc.length>0||expanding) ? '' : 'none';
+    if(expanding) setTimeout(()=>{ const inp=document.getElementById('vcp-input-'+vno); if(inp) inp.focus(); },50);
+  }
+}
+
+function applyQuickConstraint(vno, qi, event){
+  event.stopPropagation();
+  const q = QUICK_CONSTRAINTS[qi];
+  const map = vehicleSpecificConstraints[currentCenter]||(vehicleSpecificConstraints[currentCenter]={});
+  if(!map[vno]) map[vno]=[];
+  if(map[vno].some(c=>c.category===q.category&&c.reason===q.reason)) return;
+  map[vno].push({category:q.category, reason:q.reason, note:'', source:'table'});
+  renderVehTable();
+  if(!document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
+}
+
+function addVehConstraint(vno, event){
+  event.stopPropagation();
+  const inp = document.getElementById('vcp-input-'+vno);
+  if(!inp) return;
+  const val = inp.value.trim();
+  if(!val) return;
+  const map = vehicleSpecificConstraints[currentCenter]||(vehicleSpecificConstraints[currentCenter]={});
+  if(!map[vno]) map[vno]=[];
+  map[vno].push({category:'カスタム', reason:val, note:'', source:'table'});
+  inp.value='';
+  renderVehTable();
+  if(!document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
+}
+
+function removeVehConstraint(vno, idx, event){
+  event.stopPropagation();
+  const map = vehicleSpecificConstraints[currentCenter]||{};
+  if(map[vno]){ map[vno].splice(idx,1); }
+  renderVehTable();
+  if(!document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
 }
 
 function selectVeh(i){
@@ -914,6 +997,13 @@ const AP_TITLES = {
   highcost:'車格見直し・原価単価改善AP',
   fleet:'軽貨物から大型車への移管AP'
 };
+const QUICK_CONSTRAINTS = [
+  {label:'車格制限', category:'車格制限', reason:'車格制限あり（道幅・高さ等）'},
+  {label:'時間指定', category:'時間指定', reason:'時間指定制約あり'},
+  {label:'温度帯', category:'温度帯制約', reason:'温度帯制約あり（混載不可等）'},
+  {label:'エリア固定', category:'エリア固定', reason:'エリア固定（担当変更不可）'},
+  {label:'駐車制限', category:'駐車制限', reason:'駐停車制限あり'},
+];
 
 function getAllConstraintTexts(){
   const common = centerCommonConstraints[currentCenter] || [];
@@ -1031,11 +1121,13 @@ function toggleNormalCats(event){
 
 function renderConstraints(){
   const constraintItems = constraints.map((c,i)=>`<div class="constraint-tag">${c}<span class="del" onclick="removeConstraint(${i})">　×</span></div>`).join('');
-  
   const common = centerCommonConstraints[currentCenter] || [];
   const commonItems = common.map((r,i)=>`<div class="constraint-tag" style="background:var(--amber-l);color:var(--amber);border-color:var(--amber-b)">【共通】【${r.category}】 ${r.reason}${r.note?' - '+r.note:''}</div>`).join('');
-  
-  document.getElementById('constraintList').innerHTML = constraintItems + commonItems;
+  const vcMap = vehicleSpecificConstraints[currentCenter] || {};
+  const vehicleItems = Object.entries(vcMap).flatMap(([vno,cList])=>
+    cList.map(r=>`<div class="constraint-tag" style="background:var(--blue-l);color:var(--blue);border-color:var(--blue-b)">【${vno}】${r.category}：${r.reason}${r.note?' - '+r.note:''}</div>`)
+  ).join('');
+  document.getElementById('constraintList').innerHTML = constraintItems + commonItems + vehicleItems;
 }
 function addConstraint(){
   const v=document.getElementById('newConstraint').value.trim();
@@ -1294,6 +1386,7 @@ function showStep(n, category){
 function changeCenter(val){
   currentCenter=val;
   selectedVeh=null;
+  expandedConstraintVehs.clear();
   if(lineChart){lineChart.destroy();lineChart=null;}
   updateSearchBar();
   renderVehTable();
@@ -1310,6 +1403,7 @@ function changeCenter(val){
 function changeMonth(val){
   currentMonth=val;
   selectedVeh=null;
+  expandedConstraintVehs.clear();
   if(lineChart){lineChart.destroy();lineChart=null;}
   updateSearchBar();
   renderVehTable();
