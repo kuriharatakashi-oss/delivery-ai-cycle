@@ -5,652 +5,662 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>配送AI駆動改善サイクル</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f4f4f0;color:#1a1a18;font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f0f0ec;color:#1a1a18;font-size:15px}
 :root{
-  --bg-primary:#ffffff;--bg-secondary:#f4f4f0;--bg-tertiary:#eceae3;
-  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#888780;
-  --border-light:rgba(0,0,0,0.12);--border-mid:rgba(0,0,0,0.2);
-  --radius-md:8px;--radius-lg:12px;
-  --blue-50:#E6F1FB;--blue-100:#B5D4F4;--blue-400:#378ADD;--blue-600:#185FA5;--blue-800:#0C447C;
-  --green-50:#EAF3DE;--green-600:#3B6D11;
-  --red-50:#FCEBEB;--red-100:#F7C1C1;--red-600:#A32D2D;
-  --amber-50:#FAEEDA;--amber-100:#FAC775;--amber-600:#854F0B;
+  --bg:#ffffff;--bg2:#f0f0ec;--bg3:#e4e2db;
+  --t1:#1a1a18;--t2:#5f5e5a;--t3:#909088;
+  --bl:#rgba(0,0,0,0.1);--bm:rgba(0,0,0,0.18);
+  --r:8px;--rl:12px;
+  --blue:#185FA5;--blue-l:#E6F1FB;--blue-b:#B5D4F4;--blue-d:#0C447C;
+  --green:#3B6D11;--green-l:#EAF3DE;
+  --red:#A32D2D;--red-l:#FCEBEB;--red-b:#F7C1C1;
+  --amber:#854F0B;--amber-l:#FAEEDA;--amber-b:#FAC775;
 }
-@media(prefers-color-scheme:dark){
-  :root{
-    --bg-primary:#1e1e1c;--bg-secondary:#2a2a28;--bg-tertiary:#323230;
-    --text-primary:#e8e8e4;--text-secondary:#a8a8a0;--text-tertiary:#6a6a62;
-    --border-light:rgba(255,255,255,0.1);--border-mid:rgba(255,255,255,0.18);
-  }
-}
-.app{min-height:100vh;background:var(--bg-secondary)}
-.topbar{background:var(--bg-primary);border-bottom:0.5px solid var(--border-light);padding:12px 40px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-.topbar-title{font-size:18px;font-weight:500;color:var(--text-primary)}
-.step-nav{background:var(--bg-primary);border-bottom:0.5px solid var(--border-light);padding:0 40px;display:flex;align-items:stretch;overflow-x:auto}
-.step-btn{padding:12px 22px;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--text-secondary);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color 0.15s}
-.step-btn:hover{color:var(--text-primary)}
-.step-btn.active{color:var(--blue-600);border-bottom:2px solid var(--blue-600);font-weight:500}
-.step-num{width:20px;height:20px;border-radius:50%;background:var(--bg-tertiary);font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex-shrink:0}
-.step-btn.active .step-num{background:var(--blue-600);color:#fff}
-.step-btn.done .step-num{background:var(--green-600);color:#fff}
-.content{padding:24px 40px;max-width:1600px;margin:0 auto}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-@media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
-.kpi-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:16px 20px}
-.kpi-label{font-size:13px;color:var(--text-secondary);margin-bottom:6px}
-.kpi-val{font-size:26px;font-weight:500;color:var(--text-primary)}
-.kpi-sub{font-size:13px;margin-top:4px;color:var(--text-secondary)}
-.kpi-danger{color:var(--red-600)}
-.kpi-warn{color:var(--amber-600)}
-.kpi-success{color:var(--green-600)}
-.panel{background:var(--bg-primary);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:18px}
-.panel-title{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:6px}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-@media(max-width:700px){.two-col{grid-template-columns:1fr}}
-.ai-box{background:var(--blue-50);border:0.5px solid var(--blue-100);border-radius:var(--radius-md);padding:14px 18px;margin-top:14px}
-.ai-box-title{font-size:13px;font-weight:500;color:var(--blue-800);margin-bottom:6px;display:flex;align-items:center;gap:4px}
-.ai-box-body{font-size:14px;color:var(--blue-600);line-height:1.7}
-.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:500}
-.badge-danger{background:var(--red-50);color:var(--red-600)}
-.badge-warn{background:var(--amber-50);color:var(--amber-600)}
-.badge-ok{background:var(--green-50);color:var(--green-600)}
-.badge-info{background:var(--blue-50);color:var(--blue-600)}
-.rec-card{border:0.5px solid var(--border-light);border-radius:var(--radius-md);padding:18px;margin-bottom:10px;background:var(--bg-primary);transition:background 0.2s}
-.rec-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px}
-.rec-title{font-size:15px;font-weight:500;color:var(--text-primary)}
-.rec-body{font-size:14px;color:var(--text-secondary);line-height:1.7}
-.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.btn{padding:8px 18px;border-radius:var(--radius-md);font-size:14px;font-weight:500;cursor:pointer;border:0.5px solid var(--border-mid);background:var(--bg-primary);color:var(--text-primary);display:inline-flex;align-items:center;gap:5px;transition:background 0.12s}
-.btn:hover{background:var(--bg-secondary)}
-.btn:disabled{opacity:0.5;cursor:not-allowed}
-.btn-primary{background:var(--blue-600);color:#fff;border-color:var(--blue-600)}
-.btn-primary:hover{background:var(--blue-800)}
-.btn-danger{background:var(--red-50);color:var(--red-600);border-color:var(--red-100)}
-.btn-danger:hover{background:var(--red-100)}
-.modal-overlay{background:rgba(0,0,0,0.4);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;padding:24px;min-height:280px}
-.modal{background:var(--bg-primary);border-radius:var(--radius-lg);border:0.5px solid var(--border-light);padding:20px 22px;width:100%;max-width:560px}
-.modal-title{font-size:16px;font-weight:500;margin-bottom:10px;color:var(--text-primary)}
-.modal-body{font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px}
-.alert-bar{background:var(--amber-50);border:0.5px solid var(--amber-100);border-radius:var(--radius-md);padding:12px 16px;font-size:14px;color:var(--amber-600);margin-bottom:14px;display:flex;align-items:center;gap:7px}
-.reason-input{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-mid);background:var(--bg-secondary);color:var(--text-primary);margin-top:9px;min-height:52px;resize:vertical;outline:none;font-family:inherit}
-.reason-input:focus{border-color:var(--blue-400)}
-.action-log{border:0.5px solid var(--border-light);border-radius:var(--radius-md);padding:18px;background:var(--bg-secondary);margin-bottom:14px}
-.action-log-title{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:10px}
-.check-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:14px;color:var(--text-secondary);flex-wrap:wrap}
-.check-item{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
-.check-box{width:20px;height:20px;border-radius:4px;border:0.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;background:var(--bg-primary);flex-shrink:0;transition:background 0.12s}
-.check-box.checked{background:var(--blue-600);border-color:var(--blue-600);color:#fff;font-size:12px}
-.check-box.checked::after{content:'✓'}
-.constraint-tag{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:99px;font-size:13px;background:var(--red-50);color:var(--red-600);border:0.5px solid var(--red-100)}
-.constraint-tag .del{cursor:pointer;opacity:0.6}
-.constraint-tag .del:hover{opacity:1}
-.section-hidden{display:none}
-/* 車両テーブル */
-.veh-table{width:100%;border-collapse:collapse;font-size:13px}
-.veh-table th{text-align:left;padding:8px 10px;border-bottom:0.5px solid var(--border-light);color:var(--text-secondary);font-weight:500;white-space:nowrap;background:var(--bg-secondary)}
-.veh-table td{padding:8px 10px;border-bottom:0.5px solid var(--border-light);color:var(--text-primary);white-space:nowrap}
-.veh-table tr:last-child td{border-bottom:none}
-.veh-table tr:hover td{background:var(--bg-secondary)}
-.bar-inline{display:inline-block;height:8px;border-radius:99px;vertical-align:middle;margin-right:4px}
-/* 車両構成バー */
-.comp-row{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:10px}
-.comp-label{width:70px;color:var(--text-secondary);text-align:right;flex-shrink:0}
-.comp-bg{flex:1;background:var(--bg-tertiary);border-radius:99px;height:14px;overflow:hidden}
-.comp-fill{height:100%;border-radius:99px}
-.comp-val{width:80px;color:var(--text-primary);font-size:13px}
-.legend-row{display:flex;gap:16px;font-size:13px;color:var(--text-secondary);margin-bottom:10px}
-.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
-input[type=text]{font-size:14px;padding:8px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-mid);background:var(--bg-secondary);color:var(--text-primary);outline:none;font-family:inherit}
-input[type=text]:focus{border-color:var(--blue-400)}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#272725;--bg3:#313130;--t1:#e8e8e4;--t2:#a0a09a;--t3:#666660;--bl:rgba(255,255,255,0.09);--bm:rgba(255,255,255,0.16)}}
+/* layout */
+.app{min-height:100vh;background:var(--bg2)}
+.topbar{background:var(--bg);border-bottom:1px solid var(--bl);padding:0 32px;display:flex;align-items:stretch;position:sticky;top:0;z-index:200;height:56px}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;color:var(--t1);padding-right:24px;border-right:1px solid var(--bl)}
+.step-nav{display:flex;align-items:stretch;flex:1;overflow-x:auto}
+.step-btn{padding:0 20px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--t2);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;white-space:nowrap;transition:all 0.15s}
+.step-btn:hover{color:var(--t1)}
+.step-btn.active{color:var(--blue);border-bottom:2px solid var(--blue)}
+.step-num{width:19px;height:19px;border-radius:50%;background:var(--bg3);font-size:10px;display:flex;align-items:center;justify-content:center;color:var(--t2);flex-shrink:0}
+.step-btn.active .step-num{background:var(--blue);color:#fff}
+.topbar-right{display:flex;align-items:center;gap:10px;padding-left:20px;border-left:1px solid var(--bl);margin-left:auto}
 
-/* ===== スマホ対応 (768px以下) ===== */
+/* search bar */
+.search-bar{background:var(--bg);border-bottom:1px solid var(--bl);padding:14px 32px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.search-label{font-size:13px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+.search-select{font-size:15px;font-weight:600;padding:8px 14px;border-radius:var(--r);background:var(--bg2);border:1.5px solid var(--bm);color:var(--t1);cursor:pointer;outline:none;min-width:160px}
+.search-select:focus{border-color:var(--blue)}
+.search-divider{width:1px;height:28px;background:var(--bl)}
+.kpi-strip{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
+.kpi-chip{background:var(--bg2);border-radius:var(--r);padding:6px 14px;display:flex;flex-direction:column;align-items:center;min-width:100px}
+.kpi-chip-label{font-size:10px;color:var(--t2);font-weight:500;text-transform:uppercase;letter-spacing:.4px}
+.kpi-chip-val{font-size:18px;font-weight:700;margin-top:1px}
+
+/* content */
+.content{padding:20px 32px;max-width:1800px;margin:0 auto}
+.two-col{display:grid;grid-template-columns:1.1fr 0.9fr;gap:16px}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+.panel{background:var(--bg);border:1px solid var(--bl);border-radius:var(--rl);padding:18px 20px;margin-bottom:16px}
+.panel-title{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.section-hidden{display:none}
+
+/* alert strip */
+.alert-strip{background:var(--red-l);border:1px solid var(--red-b);border-radius:var(--r);padding:10px 16px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;margin-bottom:14px;font-weight:500}
+
+/* vehicle table */
+.veh-wrap{overflow-x:auto}
+.veh-table{width:100%;border-collapse:collapse;font-size:13px}
+.veh-table th{padding:8px 10px;border-bottom:1px solid var(--bl);color:var(--t2);font-weight:600;text-align:left;background:var(--bg2);white-space:nowrap;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+.veh-table td{padding:9px 10px;border-bottom:1px solid var(--bl);color:var(--t1);white-space:nowrap}
+.veh-table tr.selected td{background:var(--blue-l) !important}
+.veh-table tr:hover td{background:var(--bg2);cursor:pointer}
+.status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.s-high{background:var(--red-l);color:var(--red)}
+.s-mid{background:var(--amber-l);color:var(--amber)}
+.s-ok{background:var(--green-l);color:var(--green)}
+.s-icon{font-size:13px}
+
+/* right panel */
+.right-panel-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;color:var(--t3);font-size:13px;gap:8px}
+.ai-comment{background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.ai-comment-title{font-size:11px;font-weight:700;color:var(--blue-d);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.ai-comment-body{font-size:13px;color:var(--blue);line-height:1.7}
+.sim-box{border:1px solid var(--bl);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;background:var(--bg2)}
+.sim-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:10px}
+.sim-row{display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:5px}
+.sim-val{font-weight:600;color:var(--t1)}
+.sim-val.positive{color:var(--green)}
+.sim-val.negative{color:var(--red)}
+.sim-btn{width:100%;margin-top:10px;padding:9px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--blue);color:#fff;transition:background .12s}
+.sim-btn:hover{background:var(--blue-d)}
+
+/* chart canvas */
+.chart-wrap{position:relative;height:180px;margin-top:4px}
+
+/* hypo page */
+.hypo-category{margin-bottom:16px}
+.hypo-cat-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.hypo-card{border:1px solid var(--bl);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;background:var(--bg);cursor:pointer;transition:all .15s}
+.hypo-card:hover{border-color:var(--blue);background:var(--blue-l)}
+.hypo-card.hit{border-color:var(--red);background:var(--red-l)}
+.hypo-card.hit .hypo-icon{color:var(--red)}
+.hypo-card-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.hypo-icon{font-size:18px;flex-shrink:0}
+.hypo-name{font-size:14px;font-weight:600;color:var(--t1);flex:1}
+.hypo-body{font-size:12px;color:var(--t2);line-height:1.6;margin-left:26px}
+.hypo-meter{height:6px;border-radius:99px;background:var(--bg3);margin:8px 0 4px 26px;overflow:hidden}
+.hypo-meter-fill{height:100%;border-radius:99px;background:var(--red);transition:width .4s}
+.hypo-meter-label{font-size:11px;color:var(--t2);margin-left:26px}
+
+/* AP page */
+.ap-modal-wrap{display:flex;align-items:flex-start;justify-content:center;padding:8px 0}
+.ap-modal{background:var(--bg);border:1px solid var(--bl);border-radius:var(--rl);padding:22px 24px;width:100%;max-width:600px}
+.ap-alert{background:var(--red-l);border:1px solid var(--red-b);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--red);font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.ap-body{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:14px}
+.ap-action-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--bm);background:var(--bg);color:var(--t1);display:inline-flex;align-items:center;gap:5px;transition:background .12s}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:var(--blue-d)}
+.btn-danger{background:var(--red-l);color:var(--red);border-color:var(--red-b)}
+.ap-result{margin-top:12px;font-size:13px;padding:10px 14px;border-radius:var(--r)}
+.reason-input{width:100%;font-size:13px;padding:9px 11px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1);margin-top:9px;min-height:52px;resize:vertical;outline:none;font-family:inherit}
+.reason-input:focus{border-color:var(--blue)}
+
+/* action mgmt */
+.ticket{border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;background:var(--bg)}
+.ticket-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ticket-title{font-size:14px;font-weight:600;color:var(--t1)}
+.ticket-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--t2);margin-bottom:10px}
+.ticket-meta span{display:flex;align-items:center;gap:4px}
+.status-tag{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700}
+.st-open{background:var(--amber-l);color:var(--amber)}
+.st-wip{background:var(--blue-l);color:var(--blue)}
+.st-done{background:var(--green-l);color:var(--green)}
+.st-over{background:var(--red-l);color:var(--red)}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--bg);border:1px solid var(--bl);border-radius:var(--r);padding:12px 16px;text-align:center}
+.stat-val{font-size:22px;font-weight:700;color:var(--t1)}
+.stat-label{font-size:11px;color:var(--t2);margin-top:3px}
+.chart-wrap-sm{position:relative;height:140px}
+
+/* constraint */
+.constraint-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:99px;font-size:12px;background:var(--red-l);color:var(--red);border:1px solid var(--red-b);margin:3px}
+.constraint-tag .del{cursor:pointer;opacity:.6}
+.constraint-tag .del:hover{opacity:1}
+input[type=text]{font-size:13px;padding:8px 11px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1);outline:none;font-family:inherit;width:100%}
+input[type=text]:focus{border-color:var(--blue)}
+select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1);cursor:pointer;outline:none}
+
+/* mobile */
 @media(max-width:768px){
-  body{font-size:14px}
-  .topbar{padding:10px 16px;gap:8px;flex-wrap:wrap}
-  .topbar-title{font-size:15px}
-  .topbar span[style]{display:none}
-  .step-nav{padding:0 8px;justify-content:flex-start}
-  .step-btn{padding:10px 12px;font-size:12px;gap:4px}
-  .step-num{width:17px;height:17px;font-size:10px}
-  /* センター選択をタブの下に移動 */
-  .center-select-wrap{order:10;width:100%;padding:8px 16px;border-top:0.5px solid var(--border-light);background:var(--bg-primary)}
-  .center-select-wrap select{width:100%;font-size:15px !important;padding:10px 12px !important}
-  .content{padding:14px 14px}
-  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
-  .kpi-card{padding:12px 14px}
-  .kpi-val{font-size:20px}
-  .kpi-label{font-size:12px}
-  .kpi-sub{font-size:11px}
-  .two-col{grid-template-columns:1fr;gap:12px}
-  .panel{padding:14px 16px;margin-bottom:12px}
-  .panel-title{font-size:14px;margin-bottom:10px}
-  .ai-box{padding:12px 14px;margin-top:10px}
-  .ai-box-title{font-size:12px}
-  .ai-box-body{font-size:13px}
-  /* 車両テーブルは横スクロール */
-  .veh-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
-  .veh-table{font-size:12px;min-width:480px}
-  .veh-table th,.veh-table td{padding:7px 8px}
-  .comp-label{width:55px;font-size:12px}
-  .comp-val{width:60px;font-size:12px}
-  .comp-row{gap:7px;font-size:12px}
-  .rec-card{padding:14px}
-  .rec-title{font-size:14px}
-  .rec-body{font-size:13px}
-  .btn{padding:10px 16px;font-size:13px}
-  .btn-row{gap:8px}
-  .modal-overlay{padding:12px}
-  .modal{padding:16px}
-  .modal-title{font-size:15px}
-  .modal-body{font-size:13px}
-  .alert-bar{font-size:13px;padding:10px 12px}
-  .action-log{padding:14px}
-  .action-log-title{font-size:14px}
-  .check-row{font-size:13px;gap:6px}
-  .check-box{width:22px;height:22px}
-  .constraint-tag{font-size:12px;padding:5px 12px}
-  .legend-row{font-size:12px;gap:12px}
-  .reason-input{font-size:13px}
-  input[type=text]{font-size:13px;width:100%}
+  .topbar{padding:0 14px;height:48px}
+  .topbar-brand{font-size:14px;padding-right:12px}
+  .step-btn{padding:0 12px;font-size:12px}
+  .search-bar{padding:10px 14px;gap:10px}
+  .search-select{font-size:14px;min-width:130px}
+  .kpi-strip{gap:6px}
+  .kpi-chip{min-width:80px;padding:5px 10px}
+  .kpi-chip-val{font-size:15px}
+  .content{padding:12px 14px}
+  .two-col{grid-template-columns:1fr}
+  .panel{padding:12px 14px}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .ap-action-row{flex-direction:column}
 }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="topbar">
-    <i class="ti ti-truck" aria-hidden="true" style="font-size:22px;color:var(--blue-600)"></i>
-    <span class="topbar-title">配送AI駆動改善サイクル</span>
-    <span style="font-size:13px;color:var(--text-secondary)">対象月：2026年03月</span>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <i class="ti ti-truck" style="font-size:20px;color:var(--blue)"></i>
+    配送AI改善サイクル
   </div>
-
-  <div class="step-nav" style="justify-content:space-between;flex-wrap:wrap">
-    <div style="display:flex">
-      <button class="step-btn active" id="tab0" onclick="showStep(0)">
-        <span class="step-num done" id="sn0">✓</span>データ分析
-      </button>
-      <button class="step-btn" id="tab1" onclick="showStep(1)">
-        <span class="step-num" id="sn1">2</span>仮説構築
-      </button>
-      <button class="step-btn" id="tab2" onclick="showStep(2)">
-        <span class="step-num" id="sn2">3</span>AP立案
-      </button>
-      <button class="step-btn" id="tab3" onclick="showStep(3)">
-        <span class="step-num" id="sn3">4</span>アクション管理
-      </button>
-    </div>
-    <div class="center-select-wrap" style="display:flex;align-items:center;gap:8px;padding:0 16px;border-left:0.5px solid var(--border-light)">
-      <i class="ti ti-building-warehouse" aria-hidden="true" style="font-size:16px;color:var(--text-secondary)"></i>
-      <select id="centerSelect" onchange="changeCenter(this.value)" style="font-size:16px;padding:8px 14px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-mid);color:var(--text-primary);cursor:pointer;outline:none;font-weight:500;min-width:180px">
-        <option value="yashio">八潮センター</option>
-        <option value="utsunomiya">宇都宮センター</option>
-        <option value="omiya">大宮センター</option>
-        <option value="chiba">千葉センター</option>
-        <option value="kawasaki">川崎センター</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="content">
-
-    <!-- Step 0: データ分析 -->
-    <div id="step0">
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">実払コスト</div>
-          <div class="kpi-val" id="kpi-actual">50,438千円</div>
-          <div class="kpi-sub" id="kpi-actual-sub">前月比 +14.0%</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">理論コスト</div>
-          <div class="kpi-val" id="kpi-theory">42,233千円</div>
-          <div class="kpi-sub" id="kpi-theory-sub">前月比 +13.5%</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">乖離額</div>
-          <div class="kpi-val kpi-danger" id="kpi-gap">8,205千円</div>
-          <div class="kpi-sub kpi-danger" id="kpi-gap-rate">乖離率 16.3%</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">総配車台数</div>
-          <div class="kpi-val" id="kpi-cars">1,568台</div>
-          <div class="kpi-sub" id="kpi-cars-sub">軽487 / 2-3t 1,026 / 4t 55</div>
-        </div>
-      </div>
-
-      <div class="two-col">
-        <!-- 左：車両別コスト乖離テーブル -->
-        <div class="panel">
-          <div class="panel-title">
-            <i class="ti ti-table" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>
-            車両別コスト乖離（端末No別）
-            <span style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:4px">乖離上位を表示</span>
-          </div>
-          <div class="veh-table-wrap">
-            <table class="veh-table">
-              <thead>
-                <tr>
-                  <th>端末No</th>
-                  <th>車格</th>
-                  <th>理論コスト</th>
-                  <th>稼働日数</th>
-                  <th>運行時間(日平均)</th>
-                  <th>乖離判定</th>
-                </tr>
-              </thead>
-              <tbody id="vehicleTableBody"></tbody>
-            </table>
-          </div>
-          <div class="ai-box">
-            <div class="ai-box-title"><i class="ti ti-brain" aria-hidden="true" style="font-size:14px"></i>AI INFERENCE</div>
-            <div class="ai-box-body" id="ai-analysis-text"></div>
-          </div>
-        </div>
-
-        <!-- 右：車両構成 -->
-        <div class="panel">
-          <div class="panel-title">
-            <i class="ti ti-car" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>
-            車両構成（車格別配車比率）
-          </div>
-          <div class="legend-row">
-            <span><span class="legend-dot" style="background:#378ADD"></span>配車台数</span>
-            <span><span class="legend-dot" style="background:#E24B4A"></span>理論コスト比率</span>
-          </div>
-          <div id="compChart"></div>
-          <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div class="kpi-card">
-              <div class="kpi-label">軽貨物依存度</div>
-              <div class="kpi-val kpi-warn" id="kpi-light">96%</div>
-              <div class="kpi-sub">配車台数ベース</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-label">実払/理論 単価比</div>
-              <div class="kpi-val kpi-danger" id="kpi-unitratio">119%</div>
-              <div class="kpi-sub">円/h ベース</div>
-            </div>
-          </div>
-          <div class="ai-box">
-            <div class="ai-box-title"><i class="ti ti-brain" aria-hidden="true" style="font-size:14px"></i>AI INFERENCE</div>
-            <div class="ai-box-body" id="ai-vehicle-text"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 1: 仮説構築 -->
-    <div id="step1" class="section-hidden">
-      <div class="panel">
-        <div class="panel-title"><i class="ti ti-bulb" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>AIレコメンド仮説</div>
-        <div id="hypoList"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-title"><i class="ti ti-database" aria-hidden="true" style="font-size:15px;color:var(--amber-600)"></i>蓄積済み制約条件</div>
-        <div id="constraintList" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input type="text" id="newConstraint" placeholder="新しい制約条件を入力（例：No.046は道幅制限により2t車不可）" style="flex:1;min-width:200px">
-          <button class="btn btn-primary" onclick="addConstraint()"><i class="ti ti-plus" aria-hidden="true"></i> 制約を追加してAIに学習させる</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2: AP立案 -->
-    <div id="step2" class="section-hidden">
-      <div class="modal-overlay">
-        <div class="modal">
-          <div class="alert-bar">
-            <i class="ti ti-alert-triangle" aria-hidden="true" style="font-size:15px"></i>
-            コスト乖離アラート：<strong id="ap-gap-val">8,205千円</strong>　放置3日超 — エスカレーション済
-          </div>
-          <div class="modal-title">AI分析結果と改善アクション提案</div>
-          <div class="modal-body" id="ap-body"></div>
-          <div id="ap-reason-area" style="display:none">
-            <textarea class="reason-input" id="reasonText" placeholder="却下・保留の判断理由を入力してください（必須）&#10;例：No.046は納品先の道幅制限により4t車の進入が不可のため"></textarea>
-          </div>
-          <div class="btn-row" style="margin-top:12px">
-            <button class="btn btn-primary" onclick="apAction('approve')"><i class="ti ti-check" aria-hidden="true"></i> 承認（実行）</button>
-            <button class="btn" onclick="apAction('hold')"><i class="ti ti-clock" aria-hidden="true"></i> 保留（確認中）</button>
-            <button class="btn btn-danger" onclick="apAction('reject')"><i class="ti ti-x" aria-hidden="true"></i> 却下（理由入力）</button>
-          </div>
-          <div id="ap-result" style="display:none;margin-top:12px;font-size:14px;padding:10px;border-radius:var(--radius-md)"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 3: アクション管理 -->
-    <div id="step3" class="section-hidden">
-      <div class="panel">
-        <div class="panel-title"><i class="ti ti-list-check" aria-hidden="true" style="font-size:15px;color:var(--blue-600)"></i>アクション管理：現場知見のデータ化と進捗追跡</div>
-        <div id="actionList"></div>
-        <button class="btn" style="margin-top:10px" onclick="addActionLog()"><i class="ti ti-plus" aria-hidden="true"></i> 新しいアクションを追加</button>
-      </div>
-      <div class="ai-box">
-        <div class="ai-box-title"><i class="ti ti-brain" aria-hidden="true" style="font-size:14px"></i>入力された対応履歴はアクションFAQとして自動蓄積され、次回のAI提案精度向上に利用されます</div>
-        <div class="ai-box-body">現在 <strong id="faq-count">3</strong> 件のナレッジが蓄積済み。直近30日間の施策成功率：<strong id="success-rate">67%</strong></div>
-      </div>
-    </div>
-
+  <div class="step-nav">
+    <button class="step-btn active" id="tab0" onclick="showStep(0)"><span class="step-num active" id="sn0">1</span>データ分析</button>
+    <button class="step-btn" id="tab1" onclick="showStep(1)"><span class="step-num" id="sn1">2</span>仮説構築</button>
+    <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP立案</button>
+    <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>アクション管理</button>
   </div>
 </div>
 
+<!-- SEARCH BAR -->
+<div class="search-bar">
+  <span class="search-label"><i class="ti ti-building-warehouse"></i> センター</span>
+  <select class="search-select" id="centerSelect" onchange="changeCenter(this.value)">
+    <option value="yashio">八潮センター</option>
+    <option value="utsunomiya">宇都宮センター</option>
+    <option value="omiya">大宮センター</option>
+    <option value="chiba">千葉センター</option>
+    <option value="kawasaki">川崎センター</option>
+  </select>
+  <div class="search-divider"></div>
+  <span class="search-label"><i class="ti ti-calendar"></i> 年月</span>
+  <select class="search-select" id="monthSelect" onchange="changeMonth(this.value)"></select>
+  <div class="kpi-strip">
+    <div class="kpi-chip">
+      <span class="kpi-chip-label">実払コスト</span>
+      <span class="kpi-chip-val" id="ks-actual" style="color:var(--t1)">-</span>
+    </div>
+    <div class="kpi-chip">
+      <span class="kpi-chip-label">理論コスト</span>
+      <span class="kpi-chip-val" id="ks-theory" style="color:var(--t1)">-</span>
+    </div>
+    <div class="kpi-chip">
+      <span class="kpi-chip-label">乖離額</span>
+      <span class="kpi-chip-val" id="ks-gap" style="color:var(--red)">-</span>
+    </div>
+    <div class="kpi-chip">
+      <span class="kpi-chip-label">乖離率</span>
+      <span class="kpi-chip-val" id="ks-rate" style="color:var(--red)">-</span>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ===== STEP 0: データ分析 ===== -->
+<div id="step0">
+  <div id="alert-strip-wrap"></div>
+  <div class="two-col">
+    <!-- LEFT: 車両テーブル -->
+    <div class="panel">
+      <div class="panel-title">
+        <i class="ti ti-table" style="color:var(--blue)"></i>
+        車両別コスト乖離　<span style="font-size:11px;font-weight:400;color:var(--t2)">行をクリック → 詳細分析</span>
+      </div>
+      <div class="veh-wrap">
+        <table class="veh-table">
+          <thead><tr>
+            <th>端末No</th><th>車格</th><th>理論コスト</th><th>稼働日数</th><th>運行時間/日</th><th>状態</th>
+          </tr></thead>
+          <tbody id="vehBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RIGHT: AI分析パネル -->
+    <div class="panel">
+      <div class="panel-title">
+        <i class="ti ti-brain" style="color:var(--blue)"></i>
+        AI分析　<span id="selected-veh-label" style="font-size:12px;font-weight:400;color:var(--blue)"></span>
+      </div>
+      <div id="right-panel-content">
+        <div class="right-panel-empty">
+          <i class="ti ti-hand-click" style="font-size:28px"></i>
+          <span>左の表から車両を選択してください</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STEP 1: 仮説構築 ===== -->
+<div id="step1" class="section-hidden">
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title"><i class="ti ti-bulb" style="color:var(--blue)"></i>仮説カテゴリ診断</div>
+      <div id="hypoContent"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><i class="ti ti-database" style="color:var(--amber)"></i>蓄積済み制約条件</div>
+      <div id="constraintList" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="newConstraint" placeholder="新しい制約条件を入力…" style="flex:1">
+        <button class="btn btn-primary" onclick="addConstraint()"><i class="ti ti-plus"></i> 追加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STEP 2: AP立案 ===== -->
+<div id="step2" class="section-hidden">
+  <div class="ap-modal-wrap">
+    <div class="ap-modal">
+      <div class="ap-alert"><i class="ti ti-alert-triangle" style="font-size:16px"></i>コスト乖離アラート：<strong id="ap-gap-disp">-</strong>　放置3日超 — エスカレーション済</div>
+      <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px">AI分析結果と改善アクション提案</div>
+      <div class="ap-body" id="ap-body"></div>
+      <div id="ap-reason-area" style="display:none"><textarea class="reason-input" id="reasonText" placeholder="却下・保留の理由を入力してください（必須）"></textarea></div>
+      <div class="ap-action-row">
+        <button class="btn btn-primary" onclick="apAction('approve')"><i class="ti ti-check"></i> 承認（実行）</button>
+        <button class="btn" onclick="apAction('hold')"><i class="ti ti-clock"></i> 保留（確認中）</button>
+        <button class="btn btn-danger" onclick="apAction('reject')"><i class="ti ti-x"></i> 却下（理由入力）</button>
+      </div>
+      <div id="ap-result" style="display:none" class="ap-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STEP 3: アクション管理 ===== -->
+<div id="step3" class="section-hidden">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-val" id="tk-total" style="color:var(--blue)">0</div><div class="stat-label">総チケット</div></div>
+    <div class="stat-card"><div class="stat-val" id="tk-open" style="color:var(--amber)">0</div><div class="stat-label">未対応</div></div>
+    <div class="stat-card"><div class="stat-val" id="tk-wip" style="color:var(--blue)">0</div><div class="stat-label">対応中</div></div>
+    <div class="stat-card"><div class="stat-val" id="tk-over" style="color:var(--red)">0</div><div class="stat-label">期限超過</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title"><i class="ti ti-list-check" style="color:var(--blue)"></i>チケット一覧</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <select id="tk-filter" onchange="renderTickets()">
+          <option value="all">すべて</option>
+          <option value="open">未対応</option>
+          <option value="wip">対応中</option>
+          <option value="done">完了</option>
+          <option value="over">期限超過</option>
+        </select>
+        <button class="btn btn-primary" onclick="addTicket()"><i class="ti ti-plus"></i> チケット追加</button>
+      </div>
+      <div id="ticketList"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title"><i class="ti ti-chart-pie" style="color:var(--blue)"></i>ステータスサマリ</div>
+      <div class="chart-wrap-sm"><canvas id="ticketChart"></canvas></div>
+      <div style="margin-top:16px">
+        <div class="panel-title" style="margin-bottom:10px"><i class="ti ti-brain" style="color:var(--blue)"></i>アクションFAQ蓄積</div>
+        <div style="font-size:13px;color:var(--t2);line-height:1.7">対応履歴は自動的にナレッジ化され、次回のAI提案精度向上に活用されます。<br>蓄積件数：<strong id="faq-count" style="color:var(--blue)">5</strong>件　成功率：<strong style="color:var(--green)">71%</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /app -->
+
 <script>
-const centers = {
-  yashio:{
-    name:'八潮センター',
-    actual:50438,theory:42233,gap:8205,gapRate:16.3,
-    actualSubLabel:'前月比 +14.0%', theorySubLabel:'前月比 +13.5%',
-    cars:'1,568台', carsSub:'軽487 / 2-3t 1,026 / 4t 55',
-    lightDep:'31%', unitRatio:'119%',
-    vehicles:[
-      {no:'No.062',type:'軽',theory:890,days:25,hours:13.2,status:'high'},
-      {no:'No.063',type:'軽',theory:761,days:22,hours:12.7,status:'high'},
-      {no:'No.065',type:'軽',theory:893,days:26,hours:12.5,status:'mid'},
-      {no:'No.058',type:'軽',theory:900,days:29,hours:11.0,status:'mid'},
-      {no:'No.061',type:'軽',theory:938,days:31,hours:10.7,status:'ok'},
-      {no:'No.048',type:'軽',theory:822,days:27,hours:11.0,status:'ok'},
-      {no:'No.083',type:'軽',theory:690,days:23,hours:10.6,status:'ok'},
-      {no:'No.088',type:'軽',theory:471,days:23,hours:5.9,status:'high'},
+// ===== DATA =====
+const MONTHS = ['2025年04月','2025年05月','2025年06月','2025年07月','2025年08月','2025年09月','2025年10月','2025年11月','2025年12月','2026年01月','2026年02月','2026年03月'];
+
+function genMonthData(baseActual, baseTheory, baseGapRate, vehicles){
+  return MONTHS.map((m,i)=>{
+    const noise = 0.85 + Math.random()*0.3;
+    const actual = Math.round(baseActual * noise);
+    const theory = Math.round(baseTheory * noise);
+    const gap = actual - theory;
+    return {month:m, actual, theory, gap, gapRate:Math.round(gap/theory*1000)/10, vehicles: vehicles.map(v=>({
+      ...v,
+      theory: Math.round(v.theory * noise),
+      hours: Math.round((v.hours * (0.9+Math.random()*0.2))*10)/10,
+      days: Math.max(15, Math.min(31, v.days + Math.floor(Math.random()*5-2)))
+    }))};
+  });
+}
+
+const CENTERS = {
+  yashio:{name:'八潮センター',
+    baseVehicles:[
+      {no:'No.062',type:'軽',theory:890,days:25,hours:13.2,status:'high',ai:'運行時間が月間を通じて13h超で推移。担当エリアに午後の時間指定が集中しており、荷待ちが慢性化していると推定されます。No.088への物量移管を検討してください。',sim:{title:'No.088への物量移管（5件/日）',before:'13.2h/日',after:'10.8h/日',saving:210}},
+      {no:'No.063',type:'軽',theory:761,days:22,hours:12.7,status:'high',ai:'稼働日数22日と少ないにもかかわらず運行時間12.7h/日と長い。1日あたりの配送件数が過多な可能性があります。コース再編で1件あたりの移動距離を短縮できるか確認してください。',sim:{title:'コース再編（担当エリア縮小）',before:'12.7h/日',after:'10.2h/日',saving:180}},
+      {no:'No.065',type:'軽',theory:893,days:26,hours:12.5,status:'mid',ai:'運行時間は12.5h/日でやや高水準。稼働日数26日と多く、月間の総稼働時間は全車両中最大クラスです。直近3ヶ月で+0.4h/日の増加傾向があり、早期確認を推奨します。',sim:{title:'週次ルート見直し',before:'12.5h/日',after:'11.2h/日',saving:90}},
+      {no:'No.058',type:'軽',theory:900,days:29,hours:11.0,status:'mid',ai:'稼働日数29日は本センター最多。運行時間は標準範囲内ですが、月間稼働負荷が高く、ドライバー疲弊リスクがあります。週1日の休養日設定を検討してください。',sim:{title:'稼働日数削減（29→26日）',before:'29日/月',after:'26日/月',saving:120}},
+      {no:'No.061',type:'軽',theory:938,days:31,hours:10.7,status:'ok',ai:'運行時間・稼働日数ともに標準範囲内で安定しています。理論コストと実績の乖離も小さく、現状維持で問題ありません。',sim:{title:'現状維持推奨',before:'10.7h/日',after:'10.7h/日',saving:0}},
+      {no:'No.088',type:'軽',theory:471,days:23,hours:5.9,status:'high',ai:'運行時間5.9h/日は本センター最短。空き時間が多く稼働効率が低い状態です。No.062・No.063からの物量移管により稼働率を60%以上に引き上げられる見込みです。',sim:{title:'No.062から物量移管',before:'5.9h/日',after:'8.4h/日',saving:-150}},
     ],
-    comp:[
-      {type:'軽',count:487,costPct:31},
-      {type:'2〜3t',count:1026,costPct:62},
-      {type:'4t',count:55,costPct:7},
-    ],
-    aiAnalysis:'No.062・No.063で運行時間が日平均13h超と突出。理論コスト（1時間当たり）との乖離が慢性化しており、両車両の稼働パターン見直しが優先課題です。No.088は稼働日数23日に対し運行時間5.9hと短く、稼働効率の低さが示唆されます。',
-    aiVehicle:'配車台数の31%が軽貨物ですが、2〜3t車が台数・コスト比率ともに主力。軽貨物の1時間当たり理論コストは2〜3t車と同水準（2,052円/h）のため、走行時間が長い軽貨物の便を2〜3t車に置き換えることでコスト効率が改善する可能性があります。',
-    hypos:[
-      {title:'No.062・No.063の運行時間超過が構造的',body:'両車両の運行時間（日平均13h超）は理論値を継続的に上回っています。担当エリアの配送先数・距離・時間指定の実態を確認し、便の分割または配送先の再配分が必要か判断してください。端末No単位で担当エリアの制約はありますか？'},
-      {title:'No.088の稼働効率が低い（5.9h/日）',body:'稼働日数23日に対し運行時間が5.9h/日と短く、空き時間が多い状態です。他車両からの物量移管により稼働率を引き上げられる可能性があります。ただし、温度帯（冷凍/冷蔵）や担当エリアの制約はありますか？'},
-    ],
-    apBody:'No.062・No.063の運行時間超過（13h超/日）および No.088の低稼働（5.9h/日）を同時検知。\n\n【提案AP】No.088の空き時間にNo.062またはNo.063の一部配送先を移管し、3車両の稼働時間を平準化してください。理論コスト試算ベースで月間約380千円の削減が見込まれます。',
+    apBody:'No.062・No.063の運行時間超過（13h超/日）およびNo.088の低稼働（5.9h/日）を同時検知。\n\n【提案AP】No.088の空き時間にNo.062・No.063の一部配送先（各5件/日）を移管し、3車両の稼働時間を平準化してください。理論コスト試算ベースで月間約380千円の削減が見込まれます。',
+    hypoScores:{overtime:85,lowutil:78,highcost:45,fleet:30},
   },
-  utsunomiya:{
-    name:'宇都宮センター',
-    actual:38200,theory:34500,gap:3700,gapRate:10.7,
-    actualSubLabel:'前月比 +8.2%', theorySubLabel:'前月比 +7.9%',
-    cars:'1,102台', carsSub:'軽612 / 2-3t 450 / 4t 40',
-    lightDep:'56%', unitRatio:'111%',
-    vehicles:[
-      {no:'No.011',type:'軽',theory:710,days:24,hours:12.1,status:'high'},
-      {no:'No.015',type:'軽',theory:680,days:22,hours:11.8,status:'mid'},
-      {no:'No.023',type:'2〜3t',theory:920,days:26,hours:9.4,status:'ok'},
-      {no:'No.031',type:'2〜3t',theory:880,days:25,hours:8.9,status:'ok'},
-      {no:'No.007',type:'軽',theory:310,days:12,hours:7.2,status:'high'},
-    ],
-    comp:[
-      {type:'軽',count:612,costPct:56},
-      {type:'2〜3t',count:450,costPct:39},
-      {type:'4t',count:40,costPct:5},
-    ],
-    aiAnalysis:'No.011で運行時間12.1h/日が継続。積雪期の迂回ルートが常態化している可能性があります。No.007は稼働日数12日と少なく、月後半の稼働が確認できません。',
-    aiVehicle:'軽貨物が台数の56%を占め、コスト比率も同水準。2〜3t車の稼働効率は良好なため、軽貨物からの移管余地を検討することを推奨します。',
-    hypos:[
-      {title:'No.011の運行時間超過が継続（12.1h/日）',body:'直近3ヶ月で同様の傾向が続いています。担当エリアで迂回が発生しているか、または配送先数が過多になっていないか確認してください。'},
+  utsunomiya:{name:'宇都宮センター',
+    baseVehicles:[
+      {no:'No.011',type:'軽',theory:710,days:24,hours:12.1,status:'high',ai:'3ヶ月連続で運行時間12h超。担当エリア内で積雪による迂回ルートが常態化している可能性があります。春季以降も同水準なら構造的な配送先配分の問題と判断されます。',sim:{title:'ルート最適化（迂回解消）',before:'12.1h/日',after:'10.4h/日',saving:150}},
+      {no:'No.015',type:'軽',theory:680,days:22,hours:11.8,status:'mid',ai:'11.8h/日はやや高水準。No.011と担当エリアが隣接しており、両車両のコース境界線の見直しで互いの負荷を平準化できる可能性があります。',sim:{title:'No.011との境界線調整',before:'11.8h/日',after:'10.8h/日',saving:80}},
+      {no:'No.023',type:'2〜3t',theory:920,days:26,hours:9.4,status:'ok',ai:'稼働状況は良好。9.4h/日は理論値の範囲内です。輸送効率も安定しており、現状維持を推奨します。',sim:{title:'現状維持',before:'9.4h/日',after:'9.4h/日',saving:0}},
+      {no:'No.007',type:'軽',theory:310,days:12,hours:7.2,status:'high',ai:'稼働日数12日と著しく少ない。月後半に稼働が集中しており、月前半の需要確保またはシフト見直しが必要です。固定費分の損失が発生しています。',sim:{title:'稼働日数改善（12→20日）',before:'12日/月',after:'20日/月',saving:200}},
     ],
     apBody:'No.011の運行時間超過が3ヶ月継続。\n\n【提案AP】No.011の担当エリアを見直し、一部配送先をNo.015またはNo.023に移管してください。月間約180千円の削減が見込まれます。',
+    hypoScores:{overtime:72,lowutil:65,highcost:35,fleet:20},
   },
-  omiya:{
-    name:'大宮センター',
-    actual:62100,theory:58400,gap:3700,gapRate:6.3,
-    actualSubLabel:'前月比 +5.1%', theorySubLabel:'前月比 +4.8%',
-    cars:'2,044台', carsSub:'軽1,012 / 2-3t 890 / 4t 142',
-    lightDep:'50%', unitRatio:'106%',
-    vehicles:[
-      {no:'No.041',type:'4t',theory:1240,days:27,hours:9.1,status:'mid'},
-      {no:'No.038',type:'2〜3t',theory:980,days:26,hours:8.8,status:'ok'},
-      {no:'No.055',type:'軽',theory:760,days:24,hours:11.2,status:'mid'},
-      {no:'No.019',type:'軽',theory:720,days:23,hours:10.9,status:'ok'},
-      {no:'No.062',type:'軽',theory:690,days:22,hours:10.4,status:'ok'},
-      {no:'No.071',type:'2〜3t',theory:890,days:25,hours:8.2,status:'ok'},
-    ],
-    comp:[
-      {type:'軽',count:1012,costPct:35},
-      {type:'2〜3t',count:890,costPct:52},
-      {type:'4t',count:142,costPct:13},
-    ],
-    aiAnalysis:'全センター中最も乖離率が低く安定した水準。No.041（4t車）の稼働日数27日・運行時間9.1hは理論値と概ね一致。No.055で軽微な運行時間超過が継続しており、局所的な確認が必要です。',
-    aiVehicle:'4t車の比率が他センターより高く、車両単位の輸送効率が良好。現在の車両構成を維持しつつ、No.055の担当エリアを精査することで乖離をさらに圧縮できる見込みです。',
-    hypos:[
-      {title:'No.055の軽微な運行時間超過が継続',body:'直近4ヶ月で月平均+0.8hの超過が積み上がっています。担当エリアの配送先指定時間と実走行時間のずれを確認してください。'},
+  omiya:{name:'大宮センター',
+    baseVehicles:[
+      {no:'No.041',type:'4t',theory:1240,days:27,hours:9.1,status:'mid',ai:'9.1h/日は標準範囲内ですが、前月比+0.5hの増加が続いています。4t車の満載率が低下しており、積載効率の確認を推奨します。',sim:{title:'積載効率改善',before:'9.1h/日',after:'8.6h/日',saving:110}},
+      {no:'No.055',type:'軽',theory:760,days:24,hours:11.2,status:'mid',ai:'11.2h/日で軽微な超過が4ヶ月継続。担当エリアの配送先で時間指定が厳しい件が増加している可能性があります。',sim:{title:'時間指定案件をNo.071に移管',before:'11.2h/日',after:'10.1h/日',saving:90}},
+      {no:'No.019',type:'軽',theory:720,days:23,hours:10.9,status:'ok',ai:'安定した稼働状況です。現状維持で問題ありません。',sim:{title:'現状維持',before:'10.9h/日',after:'10.9h/日',saving:0}},
+      {no:'No.071',type:'2〜3t',theory:890,days:25,hours:8.2,status:'ok',ai:'8.2h/日と余裕のある稼働状況。No.055からの物量移管を受け入れる余力があります。',sim:{title:'No.055から移管受け入れ',before:'8.2h/日',after:'9.3h/日',saving:-70}},
     ],
     apBody:'No.055の軽微な超過が累積。\n\n【提案AP】No.055の担当配送先のうち、時間指定が厳しい2〜3件をNo.071へ移管することで月間約90千円の最適化が見込まれます。',
+    hypoScores:{overtime:35,lowutil:20,highcost:40,fleet:55},
   },
-  chiba:{
-    name:'千葉センター',
-    actual:44300,theory:41800,gap:2500,gapRate:5.9,
-    actualSubLabel:'前月比 +3.8%', theorySubLabel:'前月比 +3.5%',
-    cars:'1,380台', carsSub:'軽812 / 2-3t 520 / 4t 48',
-    lightDep:'59%', unitRatio:'106%',
-    vehicles:[
-      {no:'No.033',type:'軽',theory:810,days:26,hours:10.8,status:'ok'},
-      {no:'No.028',type:'2〜3t',theory:930,days:27,hours:9.2,status:'ok'},
-      {no:'No.045',type:'軽',theory:750,days:24,hours:10.5,status:'ok'},
-      {no:'No.017',type:'軽',theory:690,days:23,hours:10.1,status:'ok'},
-      {no:'No.052',type:'2〜3t',theory:870,days:25,hours:8.9,status:'mid'},
+  chiba:{name:'千葉センター',
+    baseVehicles:[
+      {no:'No.033',type:'軽',theory:810,days:26,hours:10.8,status:'ok',ai:'安定した稼働。現状維持推奨。',sim:{title:'現状維持',before:'10.8h/日',after:'10.8h/日',saving:0}},
+      {no:'No.028',type:'2〜3t',theory:930,days:27,hours:9.2,status:'ok',ai:'良好な稼働状況です。',sim:{title:'現状維持',before:'9.2h/日',after:'9.2h/日',saving:0}},
+      {no:'No.052',type:'2〜3t',theory:870,days:25,hours:9.6,status:'mid',ai:'3ヶ月前比+0.6h/日の増加。担当エリアの配送先が増加しているか確認してください。',sim:{title:'担当エリア精査',before:'9.6h/日',after:'9.0h/日',saving:60}},
     ],
-    comp:[
-      {type:'軽',count:812,costPct:46},
-      {type:'2〜3t',count:520,costPct:48},
-      {type:'4t',count:48,costPct:6},
-    ],
-    aiAnalysis:'乖離率5.9%は全センター中2番目の低水準。各車両の運行時間はほぼ理論値内に収まっています。No.052で軽微な超過傾向がありますが、構造的な問題ではなく月次の変動範囲内と推測されます。',
-    aiVehicle:'軽貨物と2〜3t車がほぼ同比率で安定した構成。現状維持が最善ですが、軽貨物の運行時間が10h超の便が複数あり、2〜3t車への切り替えによる時間短縮余地があります。',
-    hypos:[
-      {title:'No.052の運行時間が徐々に増加',body:'3ヶ月前比で+0.6h/日の増加が確認されています。担当エリアの配送先増加、または経路変更が発生していないか確認してください。'},
-    ],
-    apBody:'No.052の緩やかな超過傾向を検知。\n\n【提案AP】No.052の担当エリアを現状維持しつつ、翌月も同様の傾向が続く場合は配送先の再配分を実施してください。現時点での期待削減額：月間約80千円。',
+    apBody:'No.052の緩やかな超過傾向を検知。\n\n【提案AP】No.052の担当エリアを精査し、翌月も同様の傾向が続く場合は配送先の再配分を実施してください。現時点での期待削減額：月間約80千円。',
+    hypoScores:{overtime:25,lowutil:15,highcost:30,fleet:45},
   },
-  kawasaki:{
-    name:'川崎センター',
-    actual:71500,theory:60200,gap:11300,gapRate:18.8,
-    actualSubLabel:'前月比 +19.2%', theorySubLabel:'前月比 +12.1%',
-    cars:'2,210台', carsSub:'軽1,380 / 2-3t 720 / 4t 110',
-    lightDep:'62%', unitRatio:'119%',
-    vehicles:[
-      {no:'No.008',type:'軽',theory:1020,days:28,hours:14.1,status:'high'},
-      {no:'No.014',type:'軽',theory:980,days:27,hours:13.8,status:'high'},
-      {no:'No.021',type:'軽',theory:940,days:26,hours:13.5,status:'high'},
-      {no:'No.003',type:'2〜3t',theory:1180,days:29,hours:10.2,status:'mid'},
-      {no:'No.037',type:'軽',theory:420,days:16,hours:6.1,status:'high'},
-      {no:'No.051',type:'2〜3t',theory:1050,days:27,hours:9.8,status:'ok'},
+  kawasaki:{name:'川崎センター',
+    baseVehicles:[
+      {no:'No.008',type:'軽',theory:1020,days:28,hours:14.1,status:'high',ai:'14.1h/日は全センター中最長クラス。都市部特有の渋滞・駐停車制限が主因と推定。夜間配送への移行でこの数値を10h以下に抑制できる可能性があります。',sim:{title:'夜間配送への移行',before:'14.1h/日',after:'9.8h/日',saving:450}},
+      {no:'No.014',type:'軽',theory:980,days:27,hours:13.8,status:'high',ai:'No.008と同様の傾向。昼間の渋滞帯を避けられないエリアを担当しており、配送時間帯の変更が有効です。',sim:{title:'夜間配送移行',before:'13.8h/日',after:'9.5h/日',saving:420}},
+      {no:'No.021',type:'軽',theory:940,days:26,hours:13.5,status:'high',ai:'13.5h/日が継続。担当エリアで路上駐停車制限が厳しい地区が含まれており、荷待ちが長くなっています。',sim:{title:'配送先の分散化',before:'13.5h/日',after:'11.2h/日',saving:280}},
+      {no:'No.037',type:'軽',theory:420,days:16,hours:6.1,status:'high',ai:'稼働日数16日と著しく少ない。月前半に稼働がほぼない状態で、固定費の垂れ流しが発生しています。需要がない場合は車両削減も検討すべきです。',sim:{title:'稼働日数改善or車両削減',before:'16日/月',after:'24日/月',saving:300}},
     ],
-    comp:[
-      {type:'軽',count:1380,costPct:62},
-      {type:'2〜3t',count:720,costPct:32},
-      {type:'4t',count:110,costPct:6},
-    ],
-    aiAnalysis:'乖離率18.8%は全センター中最悪。No.008・No.014・No.021の3車両で運行時間が13〜14h/日と突出しており、乖離の主因と推定されます。都市部特有の渋滞・駐停車制限が走行時間を押し上げている可能性が高い。No.037は稼働日数16日と少なく、稼働率の低さも課題です。',
-    aiVehicle:'軽貨物が台数62%・コスト比率62%と他センターより高く、かつ運行時間が長い。都市部では軽貨物の機動性メリットが渋滞によって相殺されており、夜間配送への移行または2〜3t車への一部切り替えを検討すべき水準です。',
-    hypos:[
-      {title:'No.008・No.014・No.021の運行時間が構造的に超過',body:'3車両とも13h超が継続。担当エリアでの渋滞・荷待ち・指定時間の実態調査を先行してください。夜間配送への移行が有効か判断するため、現在の配送時間帯データを確認する必要があります。'},
-      {title:'No.037の低稼働（16日/月・6.1h/日）',body:'月前半の稼働が確認できません。車両整備・ドライバー不足・需要減少のいずれかが原因と推測されます。稼働していない日の理由を確認してください。'},
-    ],
-    apBody:'3車両の運行時間超過（13〜14h/日）が全センター最悪の乖離率の主因。\n\n【提案AP①】No.008・No.014・No.021の担当配送先を全数棚卸しし、時間指定が17時以降の納品先をNo.037の夜間便へ移管する試験運用を来月より開始してください。月間▲600千円が目標。\n\n【提案AP②】No.037の非稼働日の原因を確認し、稼働率70%以上を目標に改善計画を立案してください。',
+    apBody:'3車両の運行時間超過（13〜14h/日）が全センター最悪の乖離率の主因。\n\n【提案AP①】No.008・No.014・No.021の夜間配送移行トライアルを来月より開始。月間▲600千円が目標。\n\n【提案AP②】No.037の非稼働日の原因を確認し、稼働率70%以上を目標に改善計画を立案してください。',
+    hypoScores:{overtime:95,lowutil:80,highcost:70,fleet:40},
   }
 };
 
-let currentCenter = 'yashio';
-let actionLogs = [
-  {title:'No.062・No.063の運行時間超過の原因究明',checked:['confirm','root'],next:false,memo:'現場入力：担当エリアに時間指定が集中する納品先が複数あり。来月より配送先の再配分を調整予定。'},
-  {title:'No.088の低稼働改善（稼働時間5.9h→目標8h）',checked:['confirm'],next:false,memo:''},
-  {title:'軽貨物→2〜3t車への一部移管計画の策定',checked:[],next:false,memo:''},
+// generate 12-month data per center
+const centerData = {};
+Object.keys(CENTERS).forEach(k=>{
+  const c = CENTERS[k];
+  const base = {yashio:[50438,42233],utsunomiya:[38200,34500],omiya:[62100,58400],chiba:[44300,41800],kawasaki:[71500,60200]}[k];
+  centerData[k] = genMonthData(base[0],base[1],0,c.baseVehicles);
+});
+
+let currentCenter='yashio', currentMonth='2026年03月';
+let selectedVeh=null;
+let lineChart=null, ticketChart=null;
+let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
+let tickets=[
+  {id:1,title:'No.062・No.063 運行時間超過の原因究明',status:'wip',owner:'田中',due:'2026/04/10',next:'担当エリアの時間指定確認中'},
+  {id:2,title:'No.088 低稼働改善（目標8h/日）',status:'open',owner:'鈴木',due:'2026/04/15',next:''},
+  {id:3,title:'軽貨物→2〜3t車 一部移管計画',status:'open',owner:'',due:'2026/04/30',next:''},
+  {id:4,title:'夜間配送トライアル（川崎）',status:'done',owner:'佐藤',due:'2026/03/31',next:'完了。次月より本格導入'},
+  {id:5,title:'No.007 稼働日数改善',status:'over',owner:'高橋',due:'2026/03/20',next:''},
 ];
-let constraints = ['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 
 function fmt(n){return n.toLocaleString()+'千円';}
-function fmtK(n){return (n/1000).toFixed(0)+'千円';}
 
-function renderVehicleTable(cid){
-  const c = centers[cid];
-  const rows = c.vehicles.map(v=>{
-    const badgeCls = v.status==='high'?'badge-danger':v.status==='mid'?'badge-warn':'badge-ok';
-    const badgeTxt = v.status==='high'?'要確認':v.status==='mid'?'注意':'正常';
-    const barW = Math.round(v.hours/15*100);
-    return `<tr>
-      <td style="font-weight:500">${v.no}</td>
+function getCurrentData(){
+  const arr = centerData[currentCenter];
+  const idx = arr.findIndex(d=>d.month===currentMonth);
+  return idx>=0 ? arr[idx] : arr[arr.length-1];
+}
+
+function populateMonthSelect(){
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = MONTHS.slice().reverse().map(m=>`<option value="${m}"${m===currentMonth?' selected':''}>${m}</option>`).join('');
+}
+
+function updateSearchBar(){
+  const d = getCurrentData();
+  document.getElementById('ks-actual').textContent = fmt(d.actual);
+  document.getElementById('ks-theory').textContent = fmt(d.theory);
+  document.getElementById('ks-gap').textContent = fmt(d.gap);
+  const rateEl = document.getElementById('ks-rate');
+  rateEl.textContent = d.gapRate+'%';
+  rateEl.style.color = d.gapRate>15 ? 'var(--red)' : d.gapRate>10 ? 'var(--amber)' : 'var(--green)';
+
+  // alert strip
+  const wrap = document.getElementById('alert-strip-wrap');
+  if(d.gapRate>15){
+    wrap.innerHTML=`<div class="alert-strip"><i class="ti ti-alert-triangle" style="font-size:16px"></i>乖離率 <strong>${d.gapRate}%</strong> — 要緊急対応。コスト乖離 <strong>${fmt(d.gap)}</strong> を検知しました。</div>`;
+  } else if(d.gapRate>10){
+    wrap.innerHTML=`<div class="alert-strip" style="background:var(--amber-l);border-color:var(--amber-b);color:var(--amber)"><i class="ti ti-alert-circle" style="font-size:16px"></i>乖離率 <strong>${d.gapRate}%</strong> — 注意レベル。継続的なモニタリングが必要です。</div>`;
+  } else {
+    wrap.innerHTML='';
+  }
+}
+
+function renderVehTable(){
+  const d = getCurrentData();
+  document.getElementById('vehBody').innerHTML = d.vehicles.map((v,i)=>{
+    const pillCls = v.status==='high'?'s-high':v.status==='mid'?'s-mid':'s-ok';
+    const icon = v.status==='high'?'⚠':'ℹ';
+    const pillTxt = v.status==='high'?`${icon} 要確認`:v.status==='mid'?`${icon} 注意`:'✓ 正常';
+    const barW = Math.round(v.hours/15*80);
+    const barCol = v.status==='high'?'var(--red)':v.status==='mid'?'var(--amber)':'var(--blue)';
+    return `<tr onclick="selectVeh(${i})" id="vrow${i}">
+      <td style="font-weight:700">${v.no}</td>
       <td>${v.type}</td>
       <td>${v.theory.toLocaleString()}円</td>
       <td>${v.days}日</td>
       <td>
-        <span class="bar-inline" style="width:${barW}px;background:${v.status==='high'?'#E24B4A':v.status==='mid'?'#EF9F27':'#378ADD'}"></span>
-        ${v.hours}h
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:80px;height:7px;border-radius:99px;background:var(--bg3);overflow:hidden">
+            <div style="width:${barW}px;height:100%;background:${barCol};border-radius:99px"></div>
+          </div>
+          <span style="font-weight:600">${v.hours}h</span>
+        </div>
       </td>
-      <td><span class="badge ${badgeCls}">${badgeTxt}</span></td>
+      <td><span class="status-pill ${pillCls}">${pillTxt}</span></td>
     </tr>`;
   }).join('');
-  document.getElementById('vehicleTableBody').innerHTML = rows;
+
+  // re-highlight selected
+  if(selectedVeh!==null){
+    const row = document.getElementById('vrow'+selectedVeh);
+    if(row) row.classList.add('selected');
+  }
 }
 
-function renderCompChart(cid){
-  const c = centers[cid];
-  const maxCount = Math.max(...c.comp.map(x=>x.count));
-  document.getElementById('compChart').innerHTML = c.comp.map(r=>{
-    const cPct = Math.round(r.count/maxCount*100);
-    return `<div class="comp-row">
-      <div class="comp-label">${r.type}</div>
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <div class="comp-bg"><div class="comp-fill" style="width:${cPct}%;background:#378ADD"></div></div>
-          <span class="comp-val">${r.count.toLocaleString()}台</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <div class="comp-bg"><div class="comp-fill" style="width:${r.costPct}%;background:#E24B4A"></div></div>
-          <span class="comp-val">${r.costPct}%</span>
-        </div>
+function selectVeh(i){
+  selectedVeh = i;
+  // highlight
+  document.querySelectorAll('.veh-table tr').forEach(r=>r.classList.remove('selected'));
+  const row = document.getElementById('vrow'+i);
+  if(row) row.classList.add('selected');
+
+  const d = getCurrentData();
+  const v = d.vehicles[i];
+  const base = CENTERS[currentCenter].baseVehicles[i] || CENTERS[currentCenter].baseVehicles[0];
+
+  document.getElementById('selected-veh-label').textContent = `— ${v.no}`;
+
+  // build daily data (30 days)
+  const days = Array.from({length:30},(_,j)=>j+1);
+  const dailyHours = days.map(()=>Math.round((v.hours*(0.8+Math.random()*0.4))*10)/10);
+  const theoryLine = Array(30).fill(Math.round(v.hours*0.85*10)/10);
+
+  // destroy old chart
+  if(lineChart){lineChart.destroy();lineChart=null;}
+
+  const sim = base.sim || {title:'シミュレーション',before:v.hours+'h/日',after:(v.hours*0.85).toFixed(1)+'h/日',saving:100};
+
+  document.getElementById('right-panel-content').innerHTML = `
+    <div class="ai-comment">
+      <div class="ai-comment-title"><i class="ti ti-brain"></i> AI分析コメント</div>
+      <div class="ai-comment-body">${base.ai || '選択された車両の分析データを取得中...'}</div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">日別運行時間（当月）</div>
+      <div class="chart-wrap"><canvas id="lineChartCanvas"></canvas></div>
+    </div>
+    <div class="sim-box">
+      <div class="sim-title"><i class="ti ti-sparkles" style="color:var(--blue)"></i> 最適化シミュレーション</div>
+      <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">${sim.title}</div>
+      <div class="sim-row"><span>現在の運行時間</span><span class="sim-val negative">${sim.before}</span></div>
+      <div class="sim-row"><span>最適化後（推定）</span><span class="sim-val positive">${sim.after}</span></div>
+      <div class="sim-row"><span>月間コスト削減額（推定）</span><span class="sim-val ${sim.saving>0?'positive':''}">${sim.saving>0?'▲'+sim.saving.toLocaleString()+'千円':'±0（現状維持）'}</span></div>
+      <button class="sim-btn" onclick="applySimulation('${v.no}','${sim.title}',${sim.saving})"><i class="ti ti-check"></i> このプランをAPとして採用する</button>
+    </div>`;
+
+  // draw line chart
+  setTimeout(()=>{
+    const ctx = document.getElementById('lineChartCanvas');
+    if(!ctx) return;
+    lineChart = new Chart(ctx,{
+      type:'line',
+      data:{
+        labels: days.map(d=>d+'日'),
+        datasets:[
+          {label:'実績 運行時間(h)',data:dailyHours,borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,0.08)',borderWidth:2,pointRadius:2,tension:0.3},
+          {label:'理論値',data:theoryLine,borderColor:'#378ADD',backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},scales:{x:{ticks:{font:{size:10},maxTicksLimit:10}},y:{ticks:{font:{size:10}}}}}
+    });
+  },50);
+}
+
+function applySimulation(vno, title, saving){
+  tickets.unshift({id:Date.now(),title:`${vno}：${title}`,status:'open',owner:'',due:'',next:''});
+  renderTickets();
+  updateTicketStats();
+  alert(`「${title}」をAPとして採用しました。アクション管理に追加されました。`);
+  showStep(3);
+}
+
+// ===== HYPO =====
+const HYPO_CATEGORIES = [
+  {id:'overtime',icon:'⏰',label:'稼働時間超過',desc:'特定車両の運行時間が理論値を慢性的に超過している'},
+  {id:'lowutil',icon:'📦',label:'低稼働車両',desc:'稼働日数・運行時間が少なく、固定費が垂れ流しになっている'},
+  {id:'highcost',icon:'💰',label:'理論コスト高騰',desc:'車格・原価単価の構造的な問題によりコストが高止まり'},
+  {id:'fleet',icon:'🚛',label:'車両構成の非効率',desc:'軽貨物依存度が高く、大型化による効率化余地がある'},
+];
+
+function renderHypos(){
+  const c = CENTERS[currentCenter];
+  const scores = c.hypoScores;
+  document.getElementById('hypoContent').innerHTML = HYPO_CATEGORIES.map(cat=>{
+    const score = scores[cat.id]||0;
+    const hit = score>=60;
+    return `<div class="hypo-card ${hit?'hit':''}" onclick="this.classList.toggle('hit')">
+      <div class="hypo-card-header">
+        <span class="hypo-icon">${cat.icon}</span>
+        <span class="hypo-name">${cat.label}</span>
+        <span class="status-pill ${hit?'s-high':'s-ok'}" style="font-size:11px">${hit?'⚠ 該当':'✓ 正常'}</span>
       </div>
+      <div class="hypo-body">${cat.desc}</div>
+      <div class="hypo-meter"><div class="hypo-meter-fill" style="width:${score}%;background:${score>=60?'var(--red)':score>=40?'var(--amber)':'var(--green)'}"></div></div>
+      <div class="hypo-meter-label">スコア：${score}/100　${score>=60?'→ AP立案を推奨':'→ 継続監視'}</div>
     </div>`;
   }).join('');
-}
-
-function renderHypos(cid){
-  document.getElementById('hypoList').innerHTML = centers[cid].hypos.map((h,i)=>`
-    <div class="rec-card" id="hypo${i}">
-      <div class="rec-header">
-        <div class="rec-title"><i class="ti ti-bulb" aria-hidden="true" style="font-size:14px;color:var(--blue-600)"></i> ${h.title}</div>
-        <span class="badge badge-info">AI推定</span>
-      </div>
-      <div class="rec-body">${h.body}</div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="approveHypo(${i})"><i class="ti ti-check" aria-hidden="true"></i> 確認・承認</button>
-        <button class="btn" onclick="rejectHypo(${i})">制約あり（却下）</button>
-      </div>
-    </div>`).join('');
 }
 
 function renderConstraints(){
   document.getElementById('constraintList').innerHTML = constraints.map((c,i)=>
-    `<div class="constraint-tag">${c}<span class="del" onclick="removeConstraint(${i})" title="削除">　×</span></div>`
+    `<div class="constraint-tag">${c}<span class="del" onclick="removeConstraint(${i})">　×</span></div>`
   ).join('');
 }
-
-function renderActionLogs(){
-  document.getElementById('actionList').innerHTML = actionLogs.map((a,i)=>{
-    const hasConfirm = a.checked.includes('confirm');
-    const hasRoot = a.checked.includes('root');
-    const hasNext = a.next;
-    return `<div class="action-log">
-      <div class="action-log-title">${a.title}</div>
-      <div class="check-row">
-        <label class="check-item" onclick="toggleCheck(${i},'confirm')">
-          <div class="check-box ${hasConfirm?'checked':''}"></div>確認済
-        </label>
-        <label class="check-item" onclick="toggleCheck(${i},'root')" style="margin-left:14px">
-          <div class="check-box ${hasRoot?'checked':''}"></div>原因究明済
-        </label>
-        <label class="check-item" onclick="toggleCheck(${i},'next')" style="margin-left:14px">
-          <div class="check-box ${hasNext?'checked':''}"></div>次月対応
-        </label>
-      </div>
-      <textarea class="reason-input" placeholder="現場入力：原因・対応メモを入力" style="min-height:40px" oninput="updateMemo(${i},this.value)">${a.memo}</textarea>
-      <div style="font-size:12px;margin-top:8px;color:var(--text-secondary)">
-        <i class="ti ti-info-circle" aria-hidden="true" style="font-size:13px;color:var(--blue-600)"></i>　異常値放置3日超の場合、上長へ自動エスカレーション通知を送信します
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function updateMemo(i,v){actionLogs[i].memo=v;}
-
-function toggleCheck(i,key){
-  if(actionLogs[i].checked.includes(key)){
-    actionLogs[i].checked=actionLogs[i].checked.filter(c=>c!==key);
-  } else {
-    actionLogs[i].checked.push(key);
-  }
-  if(key==='next') actionLogs[i].next=!actionLogs[i].next;
-  renderActionLogs();
-}
-
-function addActionLog(){
-  actionLogs.unshift({title:`新規アクション ${actionLogs.length+1}`,checked:[],next:false,memo:''});
-  renderActionLogs();
-  document.getElementById('faq-count').textContent=parseInt(document.getElementById('faq-count').textContent)+1;
-}
-
 function addConstraint(){
   const v=document.getElementById('newConstraint').value.trim();
   if(v){constraints.push(v);renderConstraints();document.getElementById('newConstraint').value='';}
 }
 function removeConstraint(i){constraints.splice(i,1);renderConstraints();}
 
-function approveHypo(i){
-  const card=document.getElementById('hypo'+i);
-  if(card){card.style.background='var(--green-50)';card.querySelectorAll('button').forEach(b=>{b.disabled=true;b.textContent='✓ 承認済';});}
-}
-function rejectHypo(i){
-  const card=document.getElementById('hypo'+i);
-  if(card){card.style.background='var(--red-50)';card.querySelectorAll('button').forEach(b=>{b.disabled=true;});card.querySelector('.rec-body').textContent+=' → 制約あり：AIに学習させました。';}
-}
-
-function apAction(type){
-  const c=centers[currentCenter];
-  const res=document.getElementById('ap-result');
-  const ra=document.getElementById('ap-reason-area');
-  if(type==='reject'){
-    ra.style.display='block';
-    res.style.display='block';
-    res.style.background='var(--red-50)';res.style.color='var(--red-600)';
-    res.textContent='却下理由を入力してください。入力内容はアクションFAQとして蓄積されます。';return;
-  }
-  ra.style.display='none';
-  if(type==='approve'){
-    res.style.display='block';
-    res.style.background='var(--green-50)';res.style.color='var(--green-600)';
-    res.textContent=`✓ 承認しました。アクション管理に追加されました。`;
-    actionLogs.unshift({title:'AIアクションプランの実行（'+c.name+'）',checked:['confirm'],next:false,memo:'承認済。実行開始。'});
-  } else {
-    res.style.display='block';
-    res.style.background='var(--amber-50)';res.style.color='var(--amber-600)';
-    res.textContent='保留中です。確認完了後に承認してください。';
-  }
-}
-
-function changeCenter(val){
-  currentCenter=val;
-  const c=centers[val];
-  document.getElementById('kpi-actual').textContent=fmt(c.actual);
-  document.getElementById('kpi-actual-sub').textContent=c.actualSubLabel;
-  document.getElementById('kpi-theory').textContent=fmt(c.theory);
-  document.getElementById('kpi-theory-sub').textContent=c.theorySubLabel;
-  document.getElementById('kpi-gap').textContent=fmt(c.gap);
-  document.getElementById('kpi-gap-rate').textContent=`乖離率 ${c.gapRate}%`;
-  const gapEl=document.getElementById('kpi-gap');
-  gapEl.className='kpi-val '+(c.gapRate>15?'kpi-danger':c.gapRate>10?'kpi-warn':'kpi-success');
-  document.getElementById('kpi-cars').textContent=c.cars;
-  document.getElementById('kpi-cars-sub').textContent=c.carsSub;
-  document.getElementById('kpi-light').textContent=c.lightDep;
-  document.getElementById('kpi-unitratio').textContent=c.unitRatio;
-  document.getElementById('kpi-unitratio').className='kpi-val '+(parseFloat(c.unitRatio)>115?'kpi-danger':parseFloat(c.unitRatio)>110?'kpi-warn':'kpi-success');
-  document.getElementById('ai-analysis-text').textContent=c.aiAnalysis;
-  document.getElementById('ai-vehicle-text').textContent=c.aiVehicle;
-  document.getElementById('ap-gap-val').textContent=fmt(c.gap);
-  document.getElementById('ap-body').innerHTML=c.apBody.replace(/\n/g,'<br>');
+// ===== AP =====
+function renderAP(){
+  const d = getCurrentData();
+  const c = CENTERS[currentCenter];
+  document.getElementById('ap-gap-disp').textContent = fmt(d.gap);
+  document.getElementById('ap-body').innerHTML = (c.apBody||'').replace(/\n/g,'<br>');
   document.getElementById('ap-result').style.display='none';
   document.getElementById('ap-reason-area').style.display='none';
-  renderVehicleTable(val);
-  renderCompChart(val);
-  renderHypos(val);
+}
+function apAction(type){
+  const res=document.getElementById('ap-result');
+  const ra=document.getElementById('ap-reason-area');
+  if(type==='reject'){ra.style.display='block';res.style.display='block';res.style.background='var(--red-l)';res.style.color='var(--red)';res.textContent='却下理由を入力してください。アクションFAQに蓄積されます。';return;}
+  ra.style.display='none';
+  if(type==='approve'){res.style.display='block';res.style.background='var(--green-l)';res.style.color='var(--green)';res.textContent='✓ 承認しました。アクション管理にチケットが追加されました。';}
+  else{res.style.display='block';res.style.background='var(--amber-l)';res.style.color='var(--amber)';res.textContent='保留中です。確認完了後に承認してください。';}
+}
+
+// ===== TICKETS =====
+const STATUS_LABELS={open:'未対応',wip:'対応中',done:'完了',over:'期限超過'};
+const STATUS_CLS={open:'st-open',wip:'st-wip',done:'st-done',over:'st-over'};
+
+function renderTickets(){
+  const filter = document.getElementById('tk-filter').value;
+  const list = filter==='all'?tickets:tickets.filter(t=>t.status===filter);
+  document.getElementById('ticketList').innerHTML = list.map(t=>`
+    <div class="ticket">
+      <div class="ticket-header">
+        <div class="ticket-title">${t.title}</div>
+        <span class="status-tag ${STATUS_CLS[t.status]}">${STATUS_LABELS[t.status]}</span>
+      </div>
+      <div class="ticket-meta">
+        <span><i class="ti ti-user"></i>${t.owner||'未割当'}</span>
+        <span><i class="ti ti-calendar-due"></i>${t.due||'期限未設定'}</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" value="${t.next}" placeholder="ネクストアクションを入力…" style="flex:1;min-width:160px;font-size:12px;padding:6px 9px" oninput="updateTicketNext(${t.id},this.value)">
+        <select style="font-size:12px" onchange="updateTicketStatus(${t.id},this.value)">
+          ${Object.keys(STATUS_LABELS).map(s=>`<option value="${s}"${t.status===s?' selected':''}>${STATUS_LABELS[s]}</option>`).join('')}
+        </select>
+      </div>
+    </div>`).join('');
+  updateTicketStats();
+  drawTicketChart();
+}
+
+function updateTicketStatus(id,status){
+  const t=tickets.find(x=>x.id===id);
+  if(t){t.status=status;renderTickets();}
+}
+function updateTicketNext(id,val){
+  const t=tickets.find(x=>x.id===id);
+  if(t) t.next=val;
+}
+function addTicket(){
+  tickets.unshift({id:Date.now(),title:'新規チケット',status:'open',owner:'',due:'',next:''});
+  renderTickets();
+}
+function updateTicketStats(){
+  document.getElementById('tk-total').textContent=tickets.length;
+  document.getElementById('tk-open').textContent=tickets.filter(t=>t.status==='open').length;
+  document.getElementById('tk-wip').textContent=tickets.filter(t=>t.status==='wip').length;
+  document.getElementById('tk-over').textContent=tickets.filter(t=>t.status==='over').length;
+}
+
+function drawTicketChart(){
+  const ctx = document.getElementById('ticketChart');
+  if(!ctx) return;
+  if(ticketChart){ticketChart.destroy();ticketChart=null;}
+  const counts=[
+    tickets.filter(t=>t.status==='open').length,
+    tickets.filter(t=>t.status==='wip').length,
+    tickets.filter(t=>t.status==='done').length,
+    tickets.filter(t=>t.status==='over').length,
+  ];
+  ticketChart = new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:['未対応','対応中','完了','期限超過'],datasets:[{data:counts,backgroundColor:['#FAEEDA','#E6F1FB','#EAF3DE','#FCEBEB'],borderColor:['#FAC775','#B5D4F4','#A8D177','#F7C1C1'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}
+  });
 }
 
 function showStep(n){
@@ -658,11 +668,36 @@ function showStep(n){
     document.getElementById('step'+i).classList.toggle('section-hidden',i!==n);
     document.getElementById('tab'+i).classList.toggle('active',i===n);
   }
+  if(n===1) renderHypos();
+  if(n===2) renderAP();
+  if(n===3){renderTickets();setTimeout(drawTicketChart,50);}
 }
 
-changeCenter('yashio');
+function changeCenter(val){
+  currentCenter=val;
+  selectedVeh=null;
+  if(lineChart){lineChart.destroy();lineChart=null;}
+  updateSearchBar();
+  renderVehTable();
+  document.getElementById('selected-veh-label').textContent='';
+  document.getElementById('right-panel-content').innerHTML=`<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左の表から車両を選択してください</span></div>`;
+}
+
+function changeMonth(val){
+  currentMonth=val;
+  selectedVeh=null;
+  if(lineChart){lineChart.destroy();lineChart=null;}
+  updateSearchBar();
+  renderVehTable();
+  document.getElementById('selected-veh-label').textContent='';
+  document.getElementById('right-panel-content').innerHTML=`<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左の表から車両を選択してください</span></div>`;
+}
+
+// INIT
+populateMonthSelect();
+updateSearchBar();
+renderVehTable();
 renderConstraints();
-renderActionLogs();
 </script>
 </body>
 </html>
