@@ -172,6 +172,10 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
     <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP立案</button>
     <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>アクション管理</button>
   </div>
+  <div class="topbar-right">
+    <div id="topbar-center" style="font-weight:700"></div>
+    <div id="topbar-month" style="font-size:13px;color:var(--t2)"></div>
+  </div>
 </div>
 
 <!-- SEARCH BAR -->
@@ -442,6 +446,15 @@ function updateSearchBar(){
   } else {
     wrap.innerHTML='';
   }
+  // reflect current selections in topbar / selects
+  try{
+    const centerLabel = document.getElementById('topbar-center');
+    const monthLabel = document.getElementById('topbar-month');
+    if(centerLabel) centerLabel.textContent = CENTERS[currentCenter] ? CENTERS[currentCenter].name : currentCenter;
+    if(monthLabel) monthLabel.textContent = currentMonth;
+    const cs = document.getElementById('centerSelect'); if(cs) cs.value = currentCenter;
+    const ms = document.getElementById('monthSelect'); if(ms) ms.value = currentMonth;
+  }catch(e){console.warn('Error updating topbar labels',e)}
 }
 
 function renderVehTable(){
