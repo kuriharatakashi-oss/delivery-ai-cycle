@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow-x:hidden}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#f0f0ec;color:#1a1a18;font-size:15px}
 :root{
   --bg:#ffffff;--bg2:#f0f0ec;--bg3:#e4e2db;
@@ -175,6 +176,32 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
   .ap-action-row{flex-direction:column}
 }
 
+@media(max-width:600px){
+  .topbar{flex-wrap:wrap;height:auto;padding:0 12px}
+  .topbar-brand{font-size:14px;padding-right:0}
+  .step-nav{width:100%;margin-top:8px;order:2}
+  .step-btn{padding:0 10px;font-size:11px}
+  .step-btn .step-num{width:17px;height:17px;font-size:9px}
+  .topbar-right{gap:8px;padding-left:0;border-left:none;margin-left:auto}
+  #topbar-center,#topbar-month{display:none}
+  #apiKeyBtn{padding:6px 10px;font-size:12px}
+  .search-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;padding:10px 12px}
+  .search-bar .search-label{font-size:11px;white-space:nowrap}
+  .search-select{font-size:13px;min-width:0;width:100%;padding:8px 10px}
+  .search-divider{display:none}
+  .kpi-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;margin-left:0}
+  .kpi-chip{min-width:0;padding:8px 10px}
+  .kpi-chip-label{font-size:10px}
+  .kpi-chip-val{font-size:16px}
+  .veh-table th:nth-child(3), .veh-table th:nth-child(4), .veh-table td:nth-child(3), .veh-table td:nth-child(4){display:none}
+  .chart-wrap{height:150px}
+  .sim-box{padding:12px 14px}
+  .sim-title{font-size:12px}
+  .sim-row{font-size:11px}
+  .sim-btn{font-size:12px;padding:8px}
+  .search-bar > .kpi-strip{grid-column:1/-1}
+}
+
 @media(max-width:400px){
   .topbar{padding:0 10px;height:56px}
   .topbar-brand{font-size:14px;padding-right:10px;gap:8px}
@@ -212,10 +239,10 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
     配送AI改善サイクル
   </div>
   <div class="step-nav">
-    <button class="step-btn active" id="tab0" onclick="showStep(0)"><span class="step-num active" id="sn0">1</span>データ分析</button>
-    <button class="step-btn" id="tab1" onclick="showStep(1)"><span class="step-num" id="sn1">2</span>仮説構築</button>
-    <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP立案</button>
-    <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>アクション管理</button>
+    <button class="step-btn active" id="tab0" onclick="showStep(0)"><span class="step-num active" id="sn0">1</span>データ</button>
+    <button class="step-btn" id="tab1" onclick="showStep(1)"><span class="step-num" id="sn1">2</span>仮説</button>
+    <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP</button>
+    <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>管理</button>
   </div>
   <div class="topbar-right" style="display:flex;align-items:center;gap:10px">
     <button id="apiKeyBtn" class="btn" style="padding:6px 10px;font-size:12px;white-space:nowrap" onclick="openApiKeyModal()">🔑 APIキー設定</button>
