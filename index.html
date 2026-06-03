@@ -139,6 +139,25 @@ input[type=text]{font-size:13px;padding:8px 11px;border-radius:var(--r);border:1
 input[type=text]:focus{border-color:var(--blue)}
 select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1);cursor:pointer;outline:none}
 
+/* Kanban styles */
+.kanban{display:flex;gap:12px}
+.kanban-col{flex:1;background:var(--bg2);border:1px solid var(--bl);border-radius:10px;padding:8px;min-height:240px;display:flex;flex-direction:column}
+.kanban-col-header{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.kanban-col-body{flex:1;display:flex;flex-direction:column;gap:8px}
+.kanban-card{background:var(--bg);border:1px solid var(--bl);border-radius:8px;padding:10px;cursor:grab}
+.kanban-card:active{cursor:grabbing}
+.kc-title{font-weight:700;margin-bottom:6px}
+.kc-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:6px}
+.kc-next{font-size:13px;color:var(--t1)}
+
+/* Modal for adding ticket */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:500}
+.modal-box{background:var(--bg);border-radius:10px;padding:16px 18px;width:100%;max-width:520px;border:1px solid var(--bl)}
+.modal-row{display:flex;gap:8px;margin-bottom:8px}
+.modal-row label{width:80px;font-weight:600;color:var(--t2);font-size:13px}
+.modal-row input,.modal-row textarea{flex:1;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2);outline:none}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+
 /* mobile */
 @media(max-width:768px){
   .topbar{padding:0 14px;height:48px}
@@ -297,16 +316,26 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
     <div class="panel">
       <div class="panel-title"><i class="ti ti-list-check" style="color:var(--blue)"></i>チケット一覧</div>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <select id="tk-filter" onchange="renderTickets()">
-          <option value="all">すべて</option>
-          <option value="open">未対応</option>
-          <option value="wip">対応中</option>
-          <option value="done">完了</option>
-          <option value="over">期限超過</option>
-        </select>
-        <button class="btn btn-primary" onclick="addTicket()"><i class="ti ti-plus"></i> チケット追加</button>
+            <button class="btn btn-primary" onclick="openAddModal()"><i class="ti ti-plus"></i> チケット追加</button>
       </div>
-      <div id="ticketList"></div>
+          <div id="kanban" class="kanban">
+            <div class="kanban-col">
+              <div class="kanban-col-header">未対応</div>
+              <div class="kanban-col-body" id="col-open" ondragover="allowDrop(event)" ondrop="dropTo(event,'open')"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">対応中</div>
+              <div class="kanban-col-body" id="col-wip" ondragover="allowDrop(event)" ondrop="dropTo(event,'wip')"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">完了</div>
+              <div class="kanban-col-body" id="col-done" ondragover="allowDrop(event)" ondrop="dropTo(event,'done')"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-col-header">期限超過</div>
+              <div class="kanban-col-body" id="col-over" ondragover="allowDrop(event)" ondrop="dropTo(event,'over')"></div>
+            </div>
+          </div>
     </div>
     <div class="panel">
       <div class="panel-title"><i class="ti ti-chart-pie" style="color:var(--blue)"></i>ステータスサマリ</div>
@@ -321,6 +350,21 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
 
 </div><!-- /content -->
 </div><!-- /app -->
+
+<!-- Add Ticket Modal -->
+<div id="addModal" class="modal-overlay">
+  <div class="modal-box">
+    <div style="font-size:16px;font-weight:700;margin-bottom:8px">チケット追加</div>
+    <div class="modal-row"><label>タイトル</label><input id="addTitle" type="text" placeholder="タイトルを入力"></div>
+    <div class="modal-row"><label>担当者</label><input id="addOwner" type="text" placeholder="担当者名"></div>
+    <div class="modal-row"><label>期限</label><input id="addDue" type="text" placeholder="YYYY/MM/DD"></div>
+    <div class="modal-row"><label>ネクスト</label><textarea id="addNext" rows="3" placeholder="ネクストアクション"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="submitAddTicket()">追加</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ===== DATA =====
@@ -632,38 +676,40 @@ const STATUS_LABELS={open:'未対応',wip:'対応中',done:'完了',over:'期限
 const STATUS_CLS={open:'st-open',wip:'st-wip',done:'st-done',over:'st-over'};
 
 function renderTickets(){
-  const filter = document.getElementById('tk-filter').value;
   const all = centerTickets[currentCenter] || [];
-  const list = filter==='all' ? all : all.filter(t=>t.status===filter);
-  document.getElementById('ticketList').innerHTML = list.map(t=>`
-    <div class="ticket">
-      <div class="ticket-header">
-        <div class="ticket-title">${t.title}</div>
-        <span class="status-tag ${STATUS_CLS[t.status]}">${STATUS_LABELS[t.status]}</span>
-      </div>
-      <div class="ticket-meta">
-        <span><i class="ti ti-user"></i>${t.owner||'未割当'}</span>
-        <span><i class="ti ti-calendar-due"></i>${t.due||'期限未設定'}</span>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input type="text" value="${t.next}" placeholder="ネクストアクションを入力…" style="flex:1;min-width:160px;font-size:12px;padding:6px 9px" oninput="updateTicketNext(${t.id},this.value)">
-        <select style="font-size:12px" onchange="updateTicketStatus(${t.id},this.value)">
-          ${Object.keys(STATUS_LABELS).map(s=>`<option value="${s}"${t.status===s?' selected':''}>${STATUS_LABELS[s]}</option>`).join('')}
-        </select>
-      </div>
-    </div>`).join('');
+  // clear columns
+  ['open','wip','done','over'].forEach(s=>{
+    const el = document.getElementById('col-'+s);
+    if(el) el.innerHTML = '';
+  });
+  // populate cards
+  all.forEach(t=>{
+    const col = document.getElementById('col-'+t.status);
+    if(!col) return;
+    const card = document.createElement('div');
+    card.className = 'kanban-card';
+    card.draggable = true;
+    card.id = 't-'+t.id;
+    card.ondragstart = (e)=>dragStart(e,t.id);
+    card.innerHTML = `
+      <div class="kc-title">${t.title}</div>
+      <div class="kc-meta"><span>${t.owner||'未割当'}</span><span>${t.due||'期限未設定'}</span></div>
+      <div class="kc-next">${t.next||''}</div>
+    `;
+    col.appendChild(card);
+  });
   updateTicketStats();
   drawTicketChart();
 }
 
 function updateTicketStatus(id,status){
   const arr = centerTickets[currentCenter] || [];
-  const t=arr.find(x=>x.id===id);
+  const t=arr.find(x=>String(x.id)===String(id));
   if(t){t.status=status;renderTickets();}
 }
 function updateTicketNext(id,val){
   const arr = centerTickets[currentCenter] || [];
-  const t=arr.find(x=>x.id===id);
+  const t=arr.find(x=>String(x.id)===String(id));
   if(t) t.next=val;
 }
 function addTicket(){
@@ -695,6 +741,39 @@ function drawTicketChart(){
     data:{labels:['未対応','対応中','完了','期限超過'],datasets:[{data:counts,backgroundColor:['#FAEEDA','#E6F1FB','#EAF3DE','#FCEBEB'],borderColor:['#FAC775','#B5D4F4','#A8D177','#F7C1C1'],borderWidth:2}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}
   });
+}
+
+function dragStart(e,id){
+  e.dataTransfer.setData('text/plain', String(id));
+  e.dataTransfer.effectAllowed = 'move';
+}
+function allowDrop(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; }
+function dropTo(e,status){
+  e.preventDefault();
+  const id = e.dataTransfer.getData('text/plain');
+  const arr = centerTickets[currentCenter] || [];
+  const t = arr.find(x=>String(x.id)===String(id));
+  if(t){ t.status = status; renderTickets(); }
+}
+
+function openAddModal(){
+  const m = document.getElementById('addModal'); if(!m) return;
+  m.style.display='flex';
+  document.getElementById('addTitle').value='';
+  document.getElementById('addOwner').value='';
+  document.getElementById('addDue').value='';
+  document.getElementById('addNext').value='';
+}
+function closeAddModal(){ const m = document.getElementById('addModal'); if(m) m.style.display='none'; }
+function submitAddTicket(){
+  const title = document.getElementById('addTitle').value.trim();
+  if(!title){ alert('タイトルを入力してください'); return; }
+  const owner = document.getElementById('addOwner').value.trim();
+  const due = document.getElementById('addDue').value.trim();
+  const next = document.getElementById('addNext').value.trim();
+  const arr = centerTickets[currentCenter] || (centerTickets[currentCenter]=[]);
+  arr.unshift({id:Date.now(),title,owner,due,next,status:'open'});
+  closeAddModal(); renderTickets(); updateTicketStats(); drawTicketChart();
 }
 
 function showStep(n){
