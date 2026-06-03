@@ -473,6 +473,15 @@ let selectedVeh=null;
 let lineChart=null, ticketChart=null;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 
+// center-specific rejection reasons for accumulation
+const centerRejectionReasons = {
+  yashio:[],
+  utsunomiya:[],
+  omiya:[],
+  chiba:[],
+  kawasaki:[]
+};
+
 // center-specific tickets
 const centerTickets = {
   yashio:[
@@ -598,10 +607,13 @@ function selectVeh(i){
 
   const sim = base.sim || {title:'シミュレーション',before:v.hours+'h/日',after:(v.hours*0.85).toFixed(1)+'h/日',saving:100};
 
+  // format accumulated constraints
+  const constraintHtml = formatAccumulatedConstraints();
+
   document.getElementById('right-panel-content').innerHTML = `
     <div class="ai-comment">
       <div class="ai-comment-title"><i class="ti ti-brain"></i> AI分析コメント</div>
-      <div class="ai-comment-body">${base.ai || '選択された車両の分析データを取得中...'}</div>
+      <div class="ai-comment-body">${base.ai || '選択された車両の分析データを取得中...'}${constraintHtml}</div>
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">日別運行時間（当月）</div>
@@ -632,6 +644,14 @@ function selectVeh(i){
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},scales:{x:{ticks:{font:{size:10},maxTicksLimit:10}},y:{ticks:{font:{size:10}}}}}
     });
   },50);
+}
+
+function formatAccumulatedConstraints(){
+  const reasons = centerRejectionReasons[currentCenter] || [];
+  if(reasons.length===0) return '';
+  return `<br><br><div style="border-top:1px solid rgba(0,0,0,0.1);padding-top:8px;margin-top:8px"><strong style="color:var(--t1)">⚠ 蓄積済み制約条件</strong><div style="font-size:12px;margin-top:4px;color:var(--t1)">
+    ${reasons.map(r=>`<div>・【${r.category}】 ${r.reason}${r.note?'<br>&nbsp;&nbsp;└ 補足：'+r.note:''}</div>`).join('')}
+  </div></div>`;
 }
 
 function applySimulation(vno, title, saving){
@@ -671,9 +691,13 @@ function renderHypos(){
 }
 
 function renderConstraints(){
-  document.getElementById('constraintList').innerHTML = constraints.map((c,i)=>
-    `<div class="constraint-tag">${c}<span class="del" onclick="removeConstraint(${i})">　×</span></div>`
-  ).join('');
+  const constraintItems = constraints.map((c,i)=>`<div class="constraint-tag">${c}<span class="del" onclick="removeConstraint(${i})">　×</span></div>`).join('');
+  
+  // add accumulated rejection reasons
+  const reasons = centerRejectionReasons[currentCenter] || [];
+  const reasonItems = reasons.map((r,i)=>`<div class="constraint-tag" style="background:var(--amber-l);color:var(--amber);border-color:var(--amber-b)">【${r.category}】 ${r.reason}${r.note?' - '+r.note:''}</div>`).join('');
+  
+  document.getElementById('constraintList').innerHTML = constraintItems + reasonItems;
 }
 function addConstraint(){
   const v=document.getElementById('newConstraint').value.trim();
@@ -750,7 +774,10 @@ function submitReject(){
   }
   
   const reason = opt.value;
-  const faqMsg = `【${['車両・設備制約','納品先制約','運用・契約制約','情報不足'][['vehicle','delivery','operation','info'].indexOf(cat)]}】${reason}${note?'\n補足：'+note:''}`;
+  const catLabel = ['車両・設備制約','納品先制約','運用・契約制約','情報不足'][['vehicle','delivery','operation','info'].indexOf(cat)];
+  
+  // accumulate rejection reason to center
+  centerRejectionReasons[currentCenter].push({category:catLabel, reason, note});
   
   // record in FAQ (simple display)
   const faqCount = parseInt(document.getElementById('faq-count')?.textContent||'0')+1;
@@ -892,7 +919,7 @@ function showStep(n){
     document.getElementById('step'+i).classList.toggle('section-hidden',i!==n);
     document.getElementById('tab'+i).classList.toggle('active',i===n);
   }
-  if(n===1) renderHypos();
+  if(n===1){renderHypos();renderConstraints();}
   if(n===2) renderAP();
   if(n===3){renderTickets();setTimeout(drawTicketChart,50);}
 }
@@ -907,7 +934,7 @@ function changeCenter(val){
   document.getElementById('right-panel-content').innerHTML=`<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左の表から車両を選択してください</span></div>`;
   // update other screens so they reflect the new center
   try{
-    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')) renderHypos();
+    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
   }catch(e){console.warn('Error re-rendering screens after center change',e)}
@@ -923,7 +950,7 @@ function changeMonth(val){
   document.getElementById('right-panel-content').innerHTML=`<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左の表から車両を選択してください</span></div>`;
   // update other screens so they reflect the new month
   try{
-    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')) renderHypos();
+    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
   }catch(e){console.warn('Error re-rendering screens after month change',e)}
