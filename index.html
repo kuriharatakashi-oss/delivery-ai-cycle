@@ -67,6 +67,8 @@ body>*{max-width:100vw;overflow-x:hidden}
 .s-high{background:var(--red-l);color:var(--red)}
 .s-mid{background:var(--amber-l);color:var(--amber)}
 .s-ok{background:var(--green-l);color:var(--green)}
+.s-inactive{background:var(--bg3);color:var(--t3)}
+.veh-table tr.veh-inactive td{opacity:.4}
 .s-icon{font-size:13px}
 
 /* right panel */
@@ -304,10 +306,10 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
     配送AI改善サイクル
   </div>
   <div class="step-nav">
-    <button class="step-btn active" id="tab0" onclick="showStep(0)"><span class="step-num active" id="sn0">1</span>データ</button>
-    <button class="step-btn" id="tab1" onclick="showStep(1)"><span class="step-num" id="sn1">2</span>仮説</button>
-    <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP</button>
-    <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>管理</button>
+    <button class="step-btn active" id="tab0" onclick="showStep(0)"><span class="step-num active" id="sn0">1</span>車両分析</button>
+    <button class="step-btn" id="tab1" onclick="showStep(1)"><span class="step-num" id="sn1">2</span>トレンド分析</button>
+    <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP立案</button>
+    <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>アクション管理</button>
   </div>
   <div class="topbar-right" style="display:flex;align-items:center;gap:10px">
     <button id="apiKeyBtn" class="btn" style="padding:6px 10px;font-size:12px;white-space:nowrap" onclick="openApiKeyModal()">🔑 APIキー設定</button>
@@ -572,95 +574,99 @@ function genMonthData(baseActual, baseTheory, baseGapRate, vehicles, centerKey){
     const gapRate = rates ? rates[i] : Math.round((baseActual/baseTheory - 1)*100*10)/10;
     const gap = Math.round(theory * gapRate / 100);
     const actual = theory + gap;
-    // 車両データも決定論的な季節変動に変更（sin波）
+    // 非稼働車両は季節変動を適用せず固定値を維持
     return {month:m, actual, theory, gap, gapRate, vehicles: vehicles.map(v=>({
       ...v,
       theory: Math.round(v.theory * scale),
-      hours: Math.round((v.hours * (0.90 + 0.20 * Math.abs(Math.sin(i*0.7 + v.theory%3 * 0.3))))*10)/10,
-      days: Math.max(15, Math.min(31, v.days + Math.round(Math.sin(i*0.8)*2)))
+      hours: v.status==='inactive' ? v.hours : Math.round((v.hours*(0.90+0.20*Math.abs(Math.sin(i*0.7+v.theory%3*0.3))))*10)/10,
+      days: v.status==='inactive' ? v.days : Math.max(15, Math.min(31, v.days+Math.round(Math.sin(i*0.8)*2)))
     }))};
+  });
+}
+
+// 30台の車両データを決定論的に生成
+function makeVehicles(seed){
+  let s=(seed>>>0)||1;
+  const rand=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};
+  const shuffle=arr=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const types=shuffle([...Array(21).fill('軽'),...Array(8).fill('2〜3t'),...Array(1).fill('4t')]);
+  const temps=shuffle([...Array(12).fill('冷凍'),...Array(12).fill('冷蔵'),...Array(6).fill('常温')]);
+  return Array.from({length:30},(_,i)=>{
+    const no=`No.${String(i+1).padStart(3,'0')}`;
+    const type=types[i],temp=temps[i];
+    let days,hours;
+    if(i<20){days=15+Math.floor(rand()*17);hours=Math.round((7+rand()*8)*10)/10;}
+    else if(i<25){days=5+Math.floor(rand()*10);hours=Math.round((4+rand()*6)*10)/10;}
+    else{days=Math.floor(rand()*5);hours=Math.round(rand()*4*10)/10;}
+    const tm=type==='軽'?1:type==='2〜3t'?1.4:1.8;
+    const theory=Math.round((500+rand()*600)*tm/10)*10;
+    const status=days<=4?'inactive':hours>12||days<=5?'high':hours>10?'mid':'ok';
+    const saving=hours>12?Math.round((hours-10)*18*days):days>0&&days<=5?Math.round(theory*0.25):hours>10?Math.round((hours-9.5)*10*days):0;
+    const simTitle=days<=4?'車両稼働計画の見直し':hours>12?'物量移管（担当エリア縮小）':days<=5?`稼働日数改善（${days}→20日）`:hours>10?'ルート最適化':'現状維持推奨';
+    const simBefore=days<=4?`${days}日/月`:hours>12||hours>10?`${hours}h/日`:`${days}日/月`;
+    const simAfter=days<=4?'20日/月':hours>12?`${Math.max(9.5,hours-2.5).toFixed(1)}h/日`:days<=5?'20日/月':hours>10?`${(hours-1.2).toFixed(1)}h/日`:`${hours}h/日`;
+    const ai=days<=4?`${no}は当月非稼働状態です。固定費の見直しと稼働計画の改善を推奨します。`
+      :hours>12?`${no}の運行時間${hours}h/日が基準超過。担当エリアの縮小または余裕のある車両への物量移管を検討してください。`
+      :days<=5?`${no}の稼働日数${days}日は低水準。月間固定費回収が困難なため、稼働計画の改善が必要です。`
+      :hours>10?`${no}の運行時間${hours}h/日はやや高水準。月次モニタリングを継続してください。`
+      :`${no}は稼働日数${days}日・運行時間${hours}h/日と安定稼働中。現状維持を推奨します。`;
+    return {no,type,temp,theory,days,hours,status,ai,sim:{title:simTitle,before:simBefore,after:simAfter,saving}};
   });
 }
 
 const CENTERS = {
   yashio:{name:'八潮センター',
-    baseVehicles:[
-      {no:'No.062',type:'軽',temp:'冷凍',theory:890,days:25,hours:13.2,status:'high',ai:'運行時間が月間を通じて13h超で推移。担当エリアに午後の時間指定が集中しており、荷待ちが慢性化していると推定されます。No.088への物量移管を検討してください。',sim:{title:'No.088への物量移管（5件/日）',before:'13.2h/日',after:'10.8h/日',saving:210}},
-      {no:'No.063',type:'軽',temp:'冷凍',theory:761,days:22,hours:12.7,status:'high',ai:'稼働日数22日と少ないにもかかわらず運行時間12.7h/日と長い。1日あたりの配送件数が過多な可能性があります。コース再編で1件あたりの移動距離を短縮できるか確認してください。',sim:{title:'コース再編（担当エリア縮小）',before:'12.7h/日',after:'10.2h/日',saving:180}},
-      {no:'No.065',type:'軽',temp:'冷凍',theory:893,days:26,hours:12.5,status:'mid',ai:'運行時間は12.5h/日でやや高水準。稼働日数26日と多く、月間の総稼働時間は全車両中最大クラスです。直近3ヶ月で+0.4h/日の増加傾向があり、早期確認を推奨します。',sim:{title:'週次ルート見直し',before:'12.5h/日',after:'11.2h/日',saving:90}},
-      {no:'No.058',type:'軽',temp:'冷蔵',theory:900,days:29,hours:11.0,status:'mid',ai:'稼働日数29日は本センター最多。運行時間は標準範囲内ですが、月間稼働負荷が高く、ドライバー疲弊リスクがあります。週1日の休養日設定を検討してください。',sim:{title:'稼働日数削減（29→26日）',before:'29日/月',after:'26日/月',saving:120}},
-      {no:'No.061',type:'軽',temp:'冷蔵',theory:938,days:31,hours:10.7,status:'ok',ai:'運行時間・稼働日数ともに標準範囲内で安定しています。理論コストと実績の乖離も小さく、現状維持で問題ありません。',sim:{title:'現状維持推奨',before:'10.7h/日',after:'10.7h/日',saving:0}},
-      {no:'No.088',type:'軽',temp:'冷蔵',theory:471,days:23,hours:5.9,status:'high',ai:'運行時間5.9h/日は本センター最短。空き時間が多く稼働効率が低い状態です。No.062・No.063からの物量移管により稼働率を60%以上に引き上げられる見込みです。',sim:{title:'No.062から物量移管',before:'5.9h/日',after:'8.4h/日',saving:-150}},
-    ],
-    apBody:'No.062・No.063の運行時間超過（13h超/日）およびNo.088の低稼働（5.9h/日）を同時検知。\n\n【提案AP】No.088の空き時間にNo.062・No.063の一部配送先（各5件/日）を移管し、3車両の稼働時間を平準化してください。理論コスト試算ベースで月間約380千円の削減が見込まれます。',
+    baseVehicles:makeVehicles(11239),
+    apBody:'稼働時間超過車両の慢性的な長時間運行と低稼働車両の固定費垂れ流しが同時発生しています。\n\n【提案AP】稼働時間超過車両から余裕のある低稼働車両へ配送先を移管し、全体の稼働時間を平準化してください。理論コスト試算ベースで月間300〜400千円の削減が見込まれます。',
     categoryAp:{
-      overtime:'No.062・No.063の運行時間超過が本センターの主要課題です。No.088の空き時間を活用してNo.062/No.063の一部配送先を物量移管し、3車両の稼働時間を平準化してください。',
-      lowutil:'No.088の低稼働を改善するため、No.062/No.063の一部配送先をNo.088へ移管し、稼働率を引き上げてください。',
-      highcost:'冷蔵軽貨物の原価単価改善を目的に、荷量の一部を2〜3t車または大型車へ集約し、輸送1件あたりのコストを削減してください。',
-      fleet:'本センターは軽貨物依存が強く、車両構成の非効率が顕在化しています。No.062/No.063の一部物量をより大型の車両へ移管し、構成効率を改善してください。'
+      overtime:'稼働時間超過車両の担当エリアを見直し、余裕のある車両へ物量を移管して稼働時間の平準化を図ってください。',
+      lowutil:'低稼働車両の固定費負担を軽減するため、稼働日数の改善と配送ルートの最適化を実施してください。',
+      highcost:'冷凍・冷蔵軽貨物の原価単価改善を目的に、荷量の一部を2〜3t車へ集約し輸送コストを削減してください。',
+      fleet:'軽貨物依存度が高く車両構成の非効率が顕在化しています。一部物量を2〜3t車へ移管し構成効率を改善してください。'
     },
     hypoScores:{overtime:85,lowutil:78,highcost:45,fleet:30},
   },
   utsunomiya:{name:'宇都宮センター',
-    baseVehicles:[
-      {no:'No.011',type:'軽',temp:'冷凍',theory:710,days:24,hours:12.1,status:'high',ai:'3ヶ月連続で運行時間12h超。担当エリア内で積雪による迂回ルートが常態化している可能性があります。春季以降も同水準なら構造的な配送先配分の問題と判断されます。',sim:{title:'ルート最適化（迂回解消）',before:'12.1h/日',after:'10.4h/日',saving:150}},
-      {no:'No.015',type:'軽',temp:'冷凍',theory:680,days:22,hours:11.8,status:'mid',ai:'11.8h/日はやや高水準。No.011と担当エリアが隣接しており、両車両のコース境界線の見直しで互いの負荷を平準化できる可能性があります。',sim:{title:'No.011との境界線調整',before:'11.8h/日',after:'10.8h/日',saving:80}},
-      {no:'No.023',type:'2〜3t',temp:'冷蔵',theory:920,days:26,hours:9.4,status:'ok',ai:'稼働状況は良好。9.4h/日は理論値の範囲内です。輸送効率も安定しており、現状維持を推奨します。',sim:{title:'現状維持',before:'9.4h/日',after:'9.4h/日',saving:0}},
-      {no:'No.007',type:'軽',temp:'冷蔵',theory:310,days:12,hours:7.2,status:'high',ai:'稼働日数12日と著しく少ない。月後半に稼働が集中しており、月前半の需要確保またはシフト見直しが必要です。固定費分の損失が発生しています。',sim:{title:'稼働日数改善（12→20日）',before:'12日/月',after:'20日/月',saving:200}},
-    ],
-    apBody:'No.011の運行時間超過が3ヶ月継続。\n\n【提案AP】No.011の担当エリアを見直し、一部配送先をNo.015またはNo.023に移管してください。月間約180千円の削減が見込まれます。',
+    baseVehicles:makeVehicles(22481),
+    apBody:'運行時間超過が散発的に発生しており、担当エリアの配送先配分に課題があります。\n\n【提案AP】運行時間超過車両の担当エリアを見直し、一部配送先を余裕のある車両に移管してください。月間約180千円の削減が見込まれます。',
     categoryAp:{
-      overtime:'No.011の運行時間超過が継続しています。No.015またはNo.023への一部配送先移管で日別稼働を平準化し、10h台前半を目指してください。',
-      lowutil:'No.007の低稼働が顕在化しています。月前半の稼働確保と配送計画調整により、稼働日数増加と固定費負担軽減を図ってください。',
-      highcost:'原価単価高騰対策として、冷蔵軽貨物の一部を2〜3t車へ集約し、車格と輸送効率を見直してください。',
-      fleet:'軽貨物中心の車両構成を見直し、No.011/No.015の一部を2〜3t車へ移管することで、構成の非効率を改善してください。'
+      overtime:'運行時間超過車両の担当エリアを見直し、余裕のある車両への配送先移管で稼働時間を平準化してください。',
+      lowutil:'低稼働車両の稼働日数増加と配送計画の見直しにより、固定費負担の軽減を図ってください。',
+      highcost:'冷蔵軽貨物の一部を2〜3t車へ集約し、車格と輸送効率を見直してコストを改善してください。',
+      fleet:'軽貨物中心の構成を見直し、一部を2〜3t車へ移管することで構成の非効率を改善してください。'
     },
     hypoScores:{overtime:72,lowutil:65,highcost:35,fleet:20},
   },
   omiya:{name:'大宮センター',
-    baseVehicles:[
-      {no:'No.041',type:'4t',temp:'常温',theory:1240,days:27,hours:9.1,status:'mid',ai:'9.1h/日は標準範囲内ですが、前月比+0.5hの増加が続いています。4t車の満載率が低下しており、積載効率の確認を推奨します。',sim:{title:'積載効率改善',before:'9.1h/日',after:'8.6h/日',saving:110}},
-      {no:'No.055',type:'軽',temp:'冷蔵',theory:760,days:24,hours:11.2,status:'mid',ai:'11.2h/日で軽微な超過が4ヶ月継続。担当エリアの配送先で時間指定が厳しい件が増加している可能性があります。',sim:{title:'時間指定案件をNo.071に移管',before:'11.2h/日',after:'10.1h/日',saving:90}},
-      {no:'No.019',type:'軽',temp:'冷蔵',theory:720,days:23,hours:10.9,status:'ok',ai:'安定した稼働状況です。現状維持で問題ありません。',sim:{title:'現状維持',before:'10.9h/日',after:'10.9h/日',saving:0}},
-      {no:'No.071',type:'2〜3t',temp:'常温',theory:890,days:25,hours:8.2,status:'ok',ai:'8.2h/日と余裕のある稼働状況。No.055からの物量移管を受け入れる余力があります。',sim:{title:'No.055から移管受け入れ',before:'8.2h/日',after:'9.3h/日',saving:-70}},
-    ],
-    apBody:'No.055の軽微な超過が累積。\n\n【提案AP】No.055の担当配送先のうち、時間指定が厳しい2〜3件をNo.071へ移管することで月間約90千円の最適化が見込まれます。',
+    baseVehicles:makeVehicles(33762),
+    apBody:'運行時間がやや高水準で推移している車両が散見されます。\n\n【提案AP】時間指定案件の多い車両から余裕のある車両への移管を実施し、運行時間の適正化を図ってください。月間約90千円の最適化が見込まれます。',
     categoryAp:{
-      overtime:'No.055の運行時間超過には、No.071への時間指定案件移管が有効です。移管により日別運行時間を10.1h前後へ改善してください。',
-      lowutil:'No.041とNo.071の余力を活用し、低稼働車両の稼働率を引き上げる改善策を実行してください。',
-      highcost:'理論コスト高騰対策として、車格と原価単価の見直しを行い、必要に応じて軽貨物から2〜3t車への振替を検討してください。',
-      fleet:'軽貨物主体の構成を見直し、No.055の一部を2〜3t車へ移管して車両構成効率を改善してください。'
+      overtime:'運行時間超過車両の時間指定案件集中が課題です。余裕のある車両への移管で運行時間を適正化してください。',
+      lowutil:'余力のある車両の稼働率を向上させ、低稼働状態の改善と固定費効率化を進めてください。',
+      highcost:'車格と原価単価の見直しを行い、必要に応じて軽貨物から2〜3t車への振替でコスト効率を改善してください。',
+      fleet:'車両構成効率化のため、軽貨物の一部を2〜3t車へ移管して配送コストを最適化してください。'
     },
     hypoScores:{overtime:35,lowutil:20,highcost:40,fleet:55},
   },
   chiba:{name:'千葉センター',
-    baseVehicles:[
-      {no:'No.033',type:'軽',temp:'冷凍',theory:810,days:26,hours:10.8,status:'ok',ai:'安定した稼働。現状維持推奨。',sim:{title:'現状維持',before:'10.8h/日',after:'10.8h/日',saving:0}},
-      {no:'No.028',type:'2〜3t',temp:'冷蔵',theory:930,days:27,hours:9.2,status:'ok',ai:'良好な稼働状況です。',sim:{title:'現状維持',before:'9.2h/日',after:'9.2h/日',saving:0}},
-      {no:'No.052',type:'2〜3t',temp:'冷蔵',theory:870,days:25,hours:9.6,status:'mid',ai:'3ヶ月前比+0.6h/日の増加。担当エリアの配送先が増加しているか確認してください。',sim:{title:'担当エリア精査',before:'9.6h/日',after:'9.0h/日',saving:60}},
-    ],
-    apBody:'No.052の緩やかな超過傾向を検知。\n\n【提案AP】No.052の担当エリアを精査し、翌月も同様の傾向が続く場合は配送先の再配分を実施してください。現時点での期待削減額：月間約80千円。',
+    baseVehicles:makeVehicles(44053),
+    apBody:'全体的に安定した稼働状況ですが、一部車両で緩やかな超過傾向が見られます。\n\n【提案AP】担当エリアを精査し、超過傾向が継続する場合は配送先の再配分を実施してください。期待削減額：月間約80千円。',
     categoryAp:{
-      overtime:'No.052の超過傾向には担当エリアの再配分と運行条件の見直しが有効です。車両の運行時間を標準レンジへ戻してください。',
-      lowutil:'低稼働傾向の車両の稼働率改善として、No.052の配送先を最適化し、9h/日以上の安定稼働を目指してください。',
-      highcost:'理論コスト高騰対策として車格見直しを進め、冷蔵軽貨物から2〜3t車への集約を検討してください。',
-      fleet:'車両構成の非効率を改善するため、冷蔵軽貨物の一部を2〜3t車へ移管し、構成効率を高めてください。'
+      overtime:'超過傾向の車両の担当エリアを再配分し、運行時間を標準レンジに戻してください。',
+      lowutil:'低稼働傾向の車両の稼働率改善として配送先を最適化し、9h/日以上の安定稼働を目指してください。',
+      highcost:'冷蔵軽貨物の集約と車格見直しで理論コストの改善を進めてください。',
+      fleet:'冷蔵軽貨物の一部を2〜3t車へ移管し、車両構成効率を高めてください。'
     },
     hypoScores:{overtime:25,lowutil:15,highcost:30,fleet:45},
   },
   kawasaki:{name:'川崎センター',
-    baseVehicles:[
-      {no:'No.008',type:'軽',temp:'冷凍',theory:1020,days:28,hours:14.1,status:'high',ai:'14.1h/日は全センター中最長クラス。都市部特有の渋滞・駐停車制限が主因と推定。夜間配送への移行でこの数値を10h以下に抑制できる可能性があります。',sim:{title:'夜間配送への移行',before:'14.1h/日',after:'9.8h/日',saving:450}},
-      {no:'No.014',type:'軽',temp:'冷凍',theory:980,days:27,hours:13.8,status:'high',ai:'No.008と同様の傾向。昼間の渋滞帯を避けられないエリアを担当しており、配送時間帯の変更が有効です。',sim:{title:'夜間配送移行',before:'13.8h/日',after:'9.5h/日',saving:420}},
-      {no:'No.021',type:'軽',temp:'冷凍',theory:940,days:26,hours:13.5,status:'high',ai:'13.5h/日が継続。担当エリアで路上駐停車制限が厳しい地区が含まれており、荷待ちが長くなっています。',sim:{title:'配送先の分散化',before:'13.5h/日',after:'11.2h/日',saving:280}},
-      {no:'No.037',type:'軽',temp:'冷蔵',theory:420,days:16,hours:6.1,status:'high',ai:'稼働日数16日と著しく少ない。月前半に稼働がほぼない状態で、固定費の垂れ流しが発生しています。需要がない場合は車両削減も検討すべきです。',sim:{title:'稼働日数改善or車両削減',before:'16日/月',after:'24日/月',saving:300}},
-    ],
-    apBody:'3車両の運行時間超過（13〜14h/日）が全センター最悪の乖離率の主因。\n\n【提案AP①】No.008・No.014・No.021の夜間配送移行トライアルを来月より開始。月間▲600千円が目標。\n\n【提案AP②】No.037の非稼働日の原因を確認し、稼働率70%以上を目標に改善計画を立案してください。',
+    baseVehicles:makeVehicles(55394),
+    apBody:'都市部特有の渋滞・駐停車制限により複数車両で深刻な運行時間超過が発生しています。\n\n【提案AP①】超過が顕著な車両の夜間配送移行トライアルを来月より開始。月間▲500〜600千円が目標。\n\n【提案AP②】低稼働車両の非稼働日の原因を確認し、稼働率70%以上を目標に改善計画を立案してください。',
     categoryAp:{
-      overtime:'No.008/No.014/No.021の夜間配送移行トライアルで運行時間超過を抑制し、10h台前半への改善を目指してください。',
-      lowutil:'No.037の低稼働が課題です。稼働日数の増加と固定費対策として、需要の偏りを是正し稼働率を引き上げてください。',
+      overtime:'渋滞・駐停車制限への対策として夜間配送移行トライアルを実施し、運行時間の大幅削減を目指してください。',
+      lowutil:'低稼働車両の稼働日数増加と固定費対策として、需要の偏りを是正し稼働率を引き上げてください。',
       highcost:'理論コスト高騰対策として車格と原価単価の見直しを行い、コスト効率の高い車両配分へ再編してください。',
-      fleet:'軽貨物中心の構成を改善するため、No.008/No.014/No.021の一部を2〜3t車へ移管し、車両構成の効率化を進めてください。'
+      fleet:'軽貨物中心の構成を改善するため、一部を2〜3t車へ移管し車両構成の効率化を進めてください。'
     },
     hypoScores:{overtime:95,lowutil:80,highcost:70,fleet:40},
   }
@@ -780,16 +786,16 @@ function renderVehTable(){
   const vcMap = vehicleSpecificConstraints[currentCenter] || {};
   document.getElementById('vehBody').innerHTML = d.vehicles.map((v,i)=>{
     const vc = vcMap[v.no] || [];
-    const pillCls = v.status==='high'?'s-high':v.status==='mid'?'s-mid':'s-ok';
-    const icon = v.status==='high'?'⚠':'ℹ';
-    const pillTxt = v.status==='high'?`${icon} 要確認`:v.status==='mid'?`${icon} 注意`:'✓ 正常';
-    const barW = Math.round(v.hours/15*80);
-    const barCol = v.status==='high'?'var(--red)':v.status==='mid'?'var(--amber)':'var(--blue)';
+    const inactive = v.status==='inactive';
+    const pillCls = inactive?'s-inactive':v.status==='high'?'s-high':v.status==='mid'?'s-mid':'s-ok';
+    const pillTxt = inactive?'— 非稼働':v.status==='high'?'⚠ 要確認':v.status==='mid'?'ℹ 注意':'✓ 正常';
+    const barW = inactive?0:Math.round(v.hours/15*80);
+    const barCol = inactive?'var(--t3)':v.status==='high'?'var(--red)':v.status==='mid'?'var(--amber)':'var(--blue)';
     const isOpen = expandedConstraintVehs.has(v.no);
     const vcpHidden = vc.length===0 && !isOpen;
     const tagsHtml = vc.map((c,j)=>`<span class="vcp-tag">${c.category}：${c.reason}<span class="del" onclick="removeVehConstraint('${v.no}',${j},event)">×</span></span>`).join('');
     const quickBtns = QUICK_CONSTRAINTS.map((q,qi)=>`<button class="vcp-qbtn" onclick="applyQuickConstraint('${v.no}',${qi},event)">${q.label}</button>`).join('');
-    return `<tr onclick="selectVeh(${i})" id="vrow${i}">
+    return `<tr onclick="selectVeh(${i})" id="vrow${i}"${inactive?' class="veh-inactive"':''}>
       <td style="font-weight:700">${v.no}</td>
       <td>${v.type}</td>
       <td>${v.temp||'—'}</td>
