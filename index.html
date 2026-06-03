@@ -757,50 +757,52 @@ const CENTERS = {
 // June 2026 starts on Monday
 const WDAYS=[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26,29,30];
 const WDAYS_SAT=[1,2,3,4,5,6,8,9,10,11,12,13,15,16,17,18,19,20,22,23,24,25,26,27,29,30];
+// startH=6.0（出発準備開始）に統一、endH でコース終了時刻を表現
+// hours = endH + 0.5 - 6.0（準備6:00〜AC業務終了〜帰着30分）
 const CENTER_COURSES = {
   yashio:[
-    {id:'A-01',distance:158,deliveries:22,hours:11.5,startH:6.5,endH:18.0,type:'ac',activeDays:WDAYS},
-    {id:'A-02',distance:142,deliveries:24,hours:10.8,startH:7.0,endH:17.8,type:'ac',activeDays:WDAYS},
-    {id:'A-03',distance:195,deliveries:16,hours:12.8,startH:6.0,endH:18.8,type:'own',activeDays:WDAYS},
-    {id:'A-04',distance:178,deliveries:18,hours:12.2,startH:7.5,endH:19.7,type:'ac',activeDays:WDAYS},
-    {id:'A-05',distance:124,deliveries:21,hours:10.2,startH:7.0,endH:17.2,type:'own',activeDays:WDAYS},
-    {id:'A-06',distance:231,deliveries:13,hours:14.1,startH:5.5,endH:19.6,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23]},
+    {id:'A-01',distance:158,deliveries:22,hours:12.0,startH:6.0,endH:17.5,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:142,deliveries:24,hours:11.5,startH:6.0,endH:17.0,type:'ac',activeDays:WDAYS},
+    {id:'A-03',distance:195,deliveries:16,hours:13.0,startH:6.0,endH:18.5,type:'own',activeDays:WDAYS},
+    {id:'A-04',distance:178,deliveries:18,hours:13.5,startH:6.0,endH:19.0,type:'ac',activeDays:WDAYS},
+    {id:'A-05',distance:124,deliveries:21,hours:11.0,startH:6.0,endH:16.5,type:'own',activeDays:WDAYS},
+    {id:'A-06',distance:231,deliveries:13,hours:14.5,startH:6.0,endH:20.0,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23]},
   ],
   utsunomiya:[
-    {id:'A-01',distance:245,deliveries:18,hours:12.1,startH:6.0,endH:18.1,type:'ac',activeDays:WDAYS},
-    {id:'A-02',distance:198,deliveries:21,hours:11.8,startH:6.5,endH:18.3,type:'own',activeDays:WDAYS},
-    {id:'A-03',distance:312,deliveries:14,hours:14.5,startH:5.5,endH:20.0,type:'ac',activeDays:[1,2,3,8,9,10,15,16,17,22,23,24,29,30]},
-    {id:'A-04',distance:187,deliveries:23,hours:11.2,startH:7.0,endH:18.2,type:'own',activeDays:WDAYS},
-    {id:'A-05',distance:278,deliveries:12,hours:13.8,startH:5.0,endH:18.8,type:'ac',activeDays:[1,2,3,4,5,8,9,10,11,15,16,17,18,22,23,24,25]},
-    {id:'A-06',distance:165,deliveries:25,hours:10.8,startH:7.5,endH:18.3,type:'own',activeDays:WDAYS},
-    {id:'A-07',distance:234,deliveries:16,hours:12.5,startH:6.0,endH:18.5,type:'ac',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,22,23,24,25]},
+    {id:'A-01',distance:245,deliveries:18,hours:12.5,startH:6.0,endH:18.0,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:198,deliveries:21,hours:12.0,startH:6.0,endH:17.5,type:'own',activeDays:WDAYS},
+    {id:'A-03',distance:312,deliveries:14,hours:14.5,startH:6.0,endH:20.0,type:'ac',activeDays:[1,2,3,8,9,10,15,16,17,22,23,24,29,30]},
+    {id:'A-04',distance:187,deliveries:23,hours:12.0,startH:6.0,endH:17.5,type:'own',activeDays:WDAYS},
+    {id:'A-05',distance:278,deliveries:12,hours:13.5,startH:6.0,endH:19.0,type:'ac',activeDays:[1,2,3,4,5,8,9,10,11,15,16,17,18,22,23,24,25]},
+    {id:'A-06',distance:165,deliveries:25,hours:11.5,startH:6.0,endH:17.0,type:'own',activeDays:WDAYS},
+    {id:'A-07',distance:234,deliveries:16,hours:13.0,startH:6.0,endH:18.5,type:'ac',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,22,23,24,25]},
   ],
   omiya:[
-    {id:'A-01',distance:178,deliveries:22,hours:10.5,startH:7.0,endH:17.5,type:'ac',activeDays:WDAYS},
-    {id:'A-02',distance:192,deliveries:19,hours:11.2,startH:6.5,endH:17.7,type:'own',activeDays:WDAYS},
-    {id:'A-03',distance:145,deliveries:28,hours:9.8,startH:7.5,endH:17.3,type:'ac',activeDays:WDAYS_SAT},
-    {id:'A-04',distance:215,deliveries:16,hours:12.5,startH:6.0,endH:18.5,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26]},
-    {id:'A-05',distance:168,deliveries:24,hours:10.8,startH:7.0,endH:17.8,type:'ac',activeDays:WDAYS},
-    {id:'A-06',distance:198,deliveries:18,hours:11.8,startH:6.5,endH:18.3,type:'own',activeDays:WDAYS},
-    {id:'A-07',distance:134,deliveries:30,hours:9.2,startH:8.0,endH:17.2,type:'ac',activeDays:WDAYS_SAT},
+    {id:'A-01',distance:178,deliveries:22,hours:11.5,startH:6.0,endH:17.0,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:192,deliveries:19,hours:12.0,startH:6.0,endH:17.5,type:'own',activeDays:WDAYS},
+    {id:'A-03',distance:145,deliveries:28,hours:11.0,startH:6.0,endH:16.5,type:'ac',activeDays:WDAYS_SAT},
+    {id:'A-04',distance:215,deliveries:16,hours:13.0,startH:6.0,endH:18.5,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26]},
+    {id:'A-05',distance:168,deliveries:24,hours:11.5,startH:6.0,endH:17.0,type:'ac',activeDays:WDAYS},
+    {id:'A-06',distance:198,deliveries:18,hours:12.5,startH:6.0,endH:18.0,type:'own',activeDays:WDAYS},
+    {id:'A-07',distance:134,deliveries:30,hours:11.0,startH:6.0,endH:16.5,type:'ac',activeDays:WDAYS_SAT},
   ],
   chiba:[
-    {id:'A-01',distance:165,deliveries:24,hours:10.5,startH:7.0,endH:17.5,type:'ac',activeDays:WDAYS},
-    {id:'A-02',distance:145,deliveries:27,hours:9.8,startH:7.5,endH:17.3,type:'own',activeDays:WDAYS},
-    {id:'A-03',distance:188,deliveries:20,hours:11.2,startH:6.5,endH:17.7,type:'ac',activeDays:WDAYS},
-    {id:'A-04',distance:172,deliveries:22,hours:10.8,startH:7.0,endH:17.8,type:'own',activeDays:WDAYS},
-    {id:'A-05',distance:145,deliveries:26,hours:9.5,startH:7.5,endH:17.0,type:'ac',activeDays:WDAYS},
-    {id:'A-06',distance:214,deliveries:15,hours:12.8,startH:6.0,endH:18.8,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24]},
+    {id:'A-01',distance:165,deliveries:24,hours:11.5,startH:6.0,endH:17.0,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:145,deliveries:27,hours:11.0,startH:6.0,endH:16.5,type:'own',activeDays:WDAYS},
+    {id:'A-03',distance:188,deliveries:20,hours:12.0,startH:6.0,endH:17.5,type:'ac',activeDays:WDAYS},
+    {id:'A-04',distance:172,deliveries:22,hours:12.0,startH:6.0,endH:17.5,type:'own',activeDays:WDAYS},
+    {id:'A-05',distance:145,deliveries:26,hours:11.0,startH:6.0,endH:16.5,type:'ac',activeDays:WDAYS},
+    {id:'A-06',distance:214,deliveries:15,hours:13.0,startH:6.0,endH:18.5,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24]},
   ],
   kawasaki:[
-    {id:'A-01',distance:98,deliveries:32,hours:9.8,startH:7.0,endH:16.8,type:'ac',activeDays:WDAYS},
-    {id:'A-02',distance:112,deliveries:28,hours:10.5,startH:6.5,endH:17.0,type:'ac',activeDays:WDAYS},
-    {id:'A-03',distance:145,deliveries:22,hours:12.8,startH:6.0,endH:18.8,type:'own',activeDays:WDAYS},
-    {id:'A-04',distance:168,deliveries:18,hours:14.1,startH:6.0,endH:20.1,type:'ac',activeDays:WDAYS},
-    {id:'A-05',distance:89,deliveries:35,hours:9.2,startH:7.5,endH:16.7,type:'own',activeDays:WDAYS_SAT},
-    {id:'A-06',distance:134,deliveries:24,hours:11.8,startH:7.0,endH:18.8,type:'ac',activeDays:WDAYS},
-    {id:'A-07',distance:156,deliveries:16,hours:13.5,startH:6.5,endH:20.0,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23]},
-    {id:'A-08',distance:78,deliveries:38,hours:8.9,startH:8.0,endH:16.9,type:'own',activeDays:WDAYS_SAT},
+    {id:'A-01',distance:98,deliveries:32,hours:11.0,startH:6.0,endH:16.5,type:'ac',activeDays:WDAYS},
+    {id:'A-02',distance:112,deliveries:28,hours:11.5,startH:6.0,endH:17.0,type:'ac',activeDays:WDAYS},
+    {id:'A-03',distance:145,deliveries:22,hours:13.0,startH:6.0,endH:18.5,type:'own',activeDays:WDAYS},
+    {id:'A-04',distance:168,deliveries:18,hours:14.5,startH:6.0,endH:20.0,type:'ac',activeDays:WDAYS},
+    {id:'A-05',distance:89,deliveries:35,hours:11.0,startH:6.0,endH:16.5,type:'own',activeDays:WDAYS_SAT},
+    {id:'A-06',distance:134,deliveries:24,hours:13.0,startH:6.0,endH:18.5,type:'ac',activeDays:WDAYS},
+    {id:'A-07',distance:156,deliveries:16,hours:14.5,startH:6.0,endH:20.0,type:'own',activeDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23]},
+    {id:'A-08',distance:78,deliveries:38,hours:11.0,startH:6.0,endH:16.5,type:'own',activeDays:WDAYS_SAT},
   ],
 };
 
@@ -2003,32 +2005,36 @@ function selectCourse(courseId){
 function renderCourseTimeline(course){
   const totalDays = 30; // June 2026
   const activeDays = course.activeDays||[];
-  const blockColor = course.type==='ac'?'#F97316':'var(--blue)';
-  const leftPct = (course.startH/24*100).toFixed(2);
-  const widthPct = ((course.endH-course.startH)/24*100).toFixed(2);
-  // Hour axis labels
-  const hourTicks = [0,3,6,9,12,15,18,21,24];
-  const headerHtml = `<div style="display:flex;align-items:center;margin-bottom:3px">
+  // 3ブロック構成: 青（準備）6:00-7:00 / オレンジ（AC）7:00-endH / 青（帰着）endH-endH+0.5
+  const prepS=6.0, acS=7.0, acE=course.endH, retE=acE+0.5;
+  const pct=h=>(h/24*100).toFixed(2)+'%';
+  const wid=(s,e)=>((e-s)/24*100).toFixed(2)+'%';
+  const hourTicks=[0,3,6,9,12,15,18,21,24];
+  const headerHtml=`<div style="display:flex;align-items:center;margin-bottom:3px">
     <div style="width:38px;flex-shrink:0"></div>
     <div style="flex:1;position:relative;height:16px">
       ${hourTicks.map(h=>`<div style="position:absolute;left:${(h/24*100).toFixed(1)}%;font-size:10px;color:var(--t2);transform:translateX(-50%)">${h}</div>`).join('')}
     </div>
   </div>`;
-  const rowsHtml = Array.from({length:totalDays},(_,idx)=>{
-    const day = idx+1;
-    const isActive = activeDays.includes(day);
+  const rowsHtml=Array.from({length:totalDays},(_,idx)=>{
+    const day=idx+1;
+    const isActive=activeDays.includes(day);
     return `<div style="display:flex;align-items:center;margin-bottom:2px">
       <div style="width:38px;font-size:10px;color:var(--t2);text-align:right;padding-right:6px;flex-shrink:0">${day}日</div>
       <div style="flex:1;height:14px;background:var(--bg3);position:relative;border-radius:2px">
-        ${isActive?`<div style="position:absolute;left:${leftPct}%;width:${widthPct}%;height:10px;top:2px;background:${blockColor};border-radius:2px;opacity:.9"></div>`:''}
+        ${isActive?`
+          <div style="position:absolute;left:${pct(prepS)};width:${wid(prepS,acS)};height:10px;top:2px;background:var(--blue);border-radius:2px;opacity:.9" title="出発準備 6:00〜7:00"></div>
+          <div style="position:absolute;left:${pct(acS)};width:${wid(acS,acE)};height:10px;top:2px;background:#F97316;border-radius:2px;opacity:.9" title="AC業務 7:00〜${acE}時"></div>
+          <div style="position:absolute;left:${pct(acE)};width:${wid(acE,retE)};height:10px;top:2px;background:var(--blue);border-radius:2px;opacity:.9" title="帰着 ${acE}〜${retE}時"></div>
+        `:''}
       </div>
     </div>`;
   }).join('');
-  document.getElementById('timelineContent').innerHTML = `
-    <div style="display:flex;gap:16px;font-size:12px;margin-bottom:8px;color:var(--t2)">
-      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:#F97316;margin-right:4px;vertical-align:middle"></span>AC業務</span>
-      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:var(--blue);margin-right:4px;vertical-align:middle"></span>自センター</span>
-      <span style="margin-left:4px">稼働時間: ${course.startH}時〜${course.endH}時</span>
+  document.getElementById('timelineContent').innerHTML=`
+    <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;margin-bottom:8px;color:var(--t2)">
+      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:var(--blue);margin-right:4px;vertical-align:middle"></span>自センター（準備6:00〜7:00・帰着30分）</span>
+      <span><span style="display:inline-block;width:12px;height:10px;border-radius:2px;background:#F97316;margin-right:4px;vertical-align:middle"></span>AC業務（7:00〜${acE}時）</span>
+      <span style="color:var(--t3)">帰着 ${retE}時</span>
     </div>
     ${headerHtml}${rowsHtml}`;
 }
