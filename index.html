@@ -293,8 +293,29 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
       <div class="ap-alert"><i class="ti ti-alert-triangle" style="font-size:16px"></i>コスト乖離アラート：<strong id="ap-gap-disp">-</strong>　放置3日超 — エスカレーション済</div>
       <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px">AI分析結果と改善アクション提案</div>
       <div class="ap-body" id="ap-body"></div>
-      <div id="ap-reason-area" style="display:none"><textarea class="reason-input" id="reasonText" placeholder="却下・保留の理由を入力してください（必須）"></textarea></div>
-      <div class="ap-action-row">
+      <div id="ap-reject-form" style="display:none;margin-top:16px;border-top:1px solid var(--bl);padding-top:14px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px">却下理由を選択してください</div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">【理由カテゴリ】</label>
+          <select id="rejectCategory" onchange="updateRejectOptions()" style="width:100%;font-size:14px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2)">
+            <option value="">選択してください</option>
+            <option value="vehicle">車両・設備制約</option>
+            <option value="delivery">納品先制約</option>
+            <option value="operation">運用・契約制約</option>
+            <option value="info">情報不足</option>
+          </select>
+        </div>
+        <div id="rejectOptions" style="margin-bottom:12px"></div>
+        <div>
+          <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">【補足テキスト】</label>
+          <textarea id="rejectNote" placeholder="詳細な理由や補足情報があれば入力してください" style="width:100%;min-height:60px;font-size:13px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2);color:var(--t1);outline:none;resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+          <button class="btn" onclick="cancelReject()">キャンセル</button>
+          <button class="btn btn-primary" onclick="submitReject()">却下を確認</button>
+        </div>
+      </div>
+      <div class="ap-action-row" id="ap-action-buttons">
         <button class="btn btn-primary" onclick="apAction('approve')"><i class="ti ti-check"></i> 承認（実行）</button>
         <button class="btn" onclick="apAction('hold')"><i class="ti ti-clock"></i> 保留（確認中）</button>
         <button class="btn btn-danger" onclick="apAction('reject')"><i class="ti ti-x"></i> 却下（理由入力）</button>
@@ -667,13 +688,96 @@ function renderAP(){
   document.getElementById('ap-gap-disp').textContent = fmt(d.gap);
   document.getElementById('ap-body').innerHTML = (c.apBody||'').replace(/\n/g,'<br>');
   document.getElementById('ap-result').style.display='none';
-  document.getElementById('ap-reason-area').style.display='none';
+  document.getElementById('ap-reject-form').style.display='none';
+  document.getElementById('ap-action-buttons').style.display='flex';
 }
+
+// AP reject options by category
+const REJECT_CATEGORIES = {
+  vehicle:[
+    '車格が合わない（道幅・高さ制限）',
+    '温度帯が合わない（冷凍/冷蔵/常温の混載不可）',
+    '積載量が不足する',
+    '特殊車両が必要（テールゲートリフト等）'
+  ],
+  delivery:[
+    '店舗の営業時間・受入時間が合わない',
+    '指定納品時間が変更不可',
+    '駐車スペースがない・駐停車禁止',
+    '搬入口のサイズ制限'
+  ],
+  operation:[
+    'ドライバーのエリア担当が固定されている',
+    '物流パートナーとの契約条件に抵触する',
+    '他センターとの物量バランスが崩れる',
+    '季節的な物量変動で実施時期が不適切'
+  ],
+  info:[
+    '現場確認が取れていない',
+    'データが不十分で判断できない'
+  ]
+};
+
+function updateRejectOptions(){
+  const cat = document.getElementById('rejectCategory').value;
+  const opts = REJECT_CATEGORIES[cat] || [];
+  const html = opts.map((o,i)=>`
+    <label style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:13px;cursor:pointer">
+      <input type="radio" name="rejectOption" value="${o}" style="cursor:pointer">
+      <span>${o}</span>
+    </label>
+  `).join('');
+  document.getElementById('rejectOptions').innerHTML = html;
+}
+
+function cancelReject(){
+  document.getElementById('ap-reject-form').style.display='none';
+  document.getElementById('ap-action-buttons').style.display='flex';
+  document.getElementById('ap-result').style.display='none';
+  document.getElementById('rejectCategory').value='';
+  document.getElementById('rejectOptions').innerHTML='';
+  document.getElementById('rejectNote').value='';
+}
+
+function submitReject(){
+  const cat = document.getElementById('rejectCategory').value;
+  const opt = document.querySelector('input[name="rejectOption"]:checked');
+  const note = document.getElementById('rejectNote').value.trim();
+  
+  if(!cat || !opt){
+    alert('理由カテゴリと選択肢を選んでください');
+    return;
+  }
+  
+  const reason = opt.value;
+  const faqMsg = `【${['車両・設備制約','納品先制約','運用・契約制約','情報不足'][['vehicle','delivery','operation','info'].indexOf(cat)]}】${reason}${note?'\n補足：'+note:''}`;
+  
+  // record in FAQ (simple display)
+  const faqCount = parseInt(document.getElementById('faq-count')?.textContent||'0')+1;
+  if(document.getElementById('faq-count')) document.getElementById('faq-count').textContent = faqCount;
+  
+  // show result
+  const res = document.getElementById('ap-result');
+  res.style.display='block';
+  res.style.background='var(--red-l)';
+  res.style.color='var(--red)';
+  res.innerHTML = `✓ 却下理由を記録しました<br><small style="font-size:11px">「${reason}」${note?'（補足：'+note+'）':''}</small>`;
+  
+  // close form
+  setTimeout(()=>cancelReject(), 1500);
+}
+
 function apAction(type){
   const res=document.getElementById('ap-result');
-  const ra=document.getElementById('ap-reason-area');
-  if(type==='reject'){ra.style.display='block';res.style.display='block';res.style.background='var(--red-l)';res.style.color='var(--red)';res.textContent='却下理由を入力してください。アクションFAQに蓄積されます。';return;}
-  ra.style.display='none';
+  const rf=document.getElementById('ap-reject-form');
+  const ab=document.getElementById('ap-action-buttons');
+  if(type==='reject'){
+    ab.style.display='none';
+    rf.style.display='block';
+    return;
+  }
+  rf.style.display='none';
+  ab.style.display='flex';
   if(type==='approve'){res.style.display='block';res.style.background='var(--green-l)';res.style.color='var(--green)';res.textContent='✓ 承認しました。アクション管理にチケットが追加されました。';}
   else{res.style.display='block';res.style.background='var(--amber-l)';res.style.color='var(--amber)';res.textContent='保留中です。確認完了後に承認してください。';}
 }
