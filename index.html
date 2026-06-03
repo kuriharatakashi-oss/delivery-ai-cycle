@@ -778,12 +778,39 @@ async function loadClaudeAnalysis(index, vehicle, data, fallbackText){
   if(contentEl) contentEl.textContent = 'AI分析中...';
 
   const common = centerCommonConstraints[currentCenter] || [];
-  const vehicleSpecific = (vehicleSpecificConstraints[currentCenter] || {})[vehicle.no] || [];
-  const otherVehicles = data.vehicles.filter(v=>v.no!==vehicle.no).map(v=>`- ${v.no} (${v.type}/${v.temp||'―'}) 理論:${v.theory.toLocaleString()}円 稼働日数:${v.days}日 運行時間:${v.hours}h`).join('\n');
+  const vcMap = vehicleSpecificConstraints[currentCenter] || {};
+  const vehicleSpecific = (vcMap[vehicle.no]) || [];
   const commonText = common.length ? common.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
   const vehicleText = vehicleSpecific.length ? vehicleSpecific.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
+  const otherVehicles = data.vehicles.filter(v=>v.no!==vehicle.no).map(v=>{
+    const vc = vcMap[v.no] || [];
+    const vcText = vc.length ? vc.map(r=>`  ・${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : '  なし';
+    return `- ${v.no} (${v.type}/${v.temp||'―'}) 理論:${v.theory.toLocaleString()}円 稼働日数:${v.days}日 運行時間:${v.hours}h\n  個別制約条件:\n${vcText}`;
+  }).join('\n');
 
-  const prompt = `あなたは物流コスト改善の専門AIです。以下の車両データと制約条件を分析し、現状の課題と改善提案を150字程度で簡潔に日本語で述べてください。制約条件がある場合は必ず考慮し、その制約を踏まえた上での現実的な改善策を提案してください。\n\nセンター名: ${CENTERS[currentCenter].name}\n対象年月: ${currentMonth}\n対象車両: ${vehicle.no}\n車格: ${vehicle.type}\n温度帯: ${vehicle.temp || '不明'}\n理論コスト: ${vehicle.theory.toLocaleString()}円\n稼働日数: ${vehicle.days}日\n運行時間: ${vehicle.hours}h\n\nセンター共通の蓄積済み制約条件:\n${commonText}\n\n対象車両の蓄積済み個別制約条件:\n${vehicleText}\n\n同センターの他車両との比較データ:\n${otherVehicles}\n\n回答はプレーンテキストのみで返してください。HTMLタグ、マークダウン、装飾は一切使わないでください。`;
+  const prompt = `あなたは物流コスト改善の専門AIです。以下の車両データと制約条件を分析し、現状の課題と改善提案を150字程度で簡潔に日本語で述べてください。制約条件がある場合は必ず考慮し、その制約を踏まえた上での現実的な改善策を提案してください。
+
+改善提案で他の車両への移管を提案する場合は、その車両の制約条件を必ず確認してください。制約がある車両への移管は提案せず、制約がない車両への移管を提案するか、制約がある場合はその旨を明示した上で代替案を提示してください。温度帯が異なる車両への移管は提案しないでください。
+
+センター名: ${CENTERS[currentCenter].name}
+対象年月: ${currentMonth}
+対象車両: ${vehicle.no}
+車格: ${vehicle.type}
+温度帯: ${vehicle.temp || '不明'}
+理論コスト: ${vehicle.theory.toLocaleString()}円
+稼働日数: ${vehicle.days}日
+運行時間: ${vehicle.hours}h
+
+センター共通の蓄積済み制約条件:
+${commonText}
+
+対象車両の蓄積済み個別制約条件:
+${vehicleText}
+
+同センターの他車両データ（個別制約条件含む）:
+${otherVehicles}
+
+回答はプレーンテキストのみで返してください。HTMLタグ、マークダウン、装飾は一切使わないでください。`;
 
   try{
     const apiKey = getStoredApiKey();
