@@ -862,18 +862,34 @@ async function loadClaudeAnalysis(index, vehicle, data, fallbackText){
 
   const common = centerCommonConstraints[currentCenter] || [];
   const vcMap = vehicleSpecificConstraints[currentCenter] || {};
-  const vehicleSpecific = (vcMap[vehicle.no]) || [];
+  const vehicleSpecific = vcMap[vehicle.no] || [];
   const commonText = common.length ? common.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
   const vehicleText = vehicleSpecific.length ? vehicleSpecific.map(r=>`- ${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : 'なし';
-  const otherVehicles = data.vehicles.filter(v=>v.no!==vehicle.no).map(v=>{
-    const vc = vcMap[v.no] || [];
-    const vcText = vc.length ? vc.map(r=>`  ・${r.category}：${r.reason}${r.note ? '（'+r.note+'）' : ''}`).join('\n') : '  なし';
-    return `- ${v.no} (${v.type}/${v.temp||'―'}) 理論:${v.theory.toLocaleString()}円 稼働日数:${v.days}日 運行時間:${v.hours}h\n  個別制約条件:\n${vcText}`;
-  }).join('\n');
 
-  const prompt = `あなたは物流コスト改善の専門AIです。以下の車両データと制約条件を分析し、現状の課題と改善提案を150字程度で簡潔に日本語で述べてください。制約条件がある場合は必ず考慮し、その制約を踏まえた上での現実的な改善策を提案してください。
+  // 他車両をJSON形式で構築（制約条件を明示）
+  const otherVehiclesJson = JSON.stringify(
+    data.vehicles.filter(v=>v.no!==vehicle.no).map(v=>{
+      const vc = vcMap[v.no] || [];
+      return {
+        車番: v.no,
+        車格: v.type,
+        温度帯: v.temp || '不明',
+        稼働日数: v.days,
+        運行時間h: v.hours,
+        制約条件: vc.map(r=>({カテゴリ: r.category, 内容: r.reason, 補足: r.note||''}))
+      };
+    }),
+    null, 2
+  );
 
-改善提案で他の車両への移管を提案する場合は、その車両の制約条件を必ず確認してください。制約がある車両への移管は提案せず、制約がない車両への移管を提案するか、制約がある場合はその旨を明示した上で代替案を提示してください。温度帯が異なる車両への移管は提案しないでください。
+  const prompt = `あなたは物流コスト改善の専門AIです。以下の車両データと制約条件を分析し、現状の課題と改善提案を150字程度で簡潔に日本語で述べてください。
+
+【重要：移管提案のルール（必ず守ること）】
+以下の「同センターの他車両データ（JSON）」の制約条件を確認してください。
+- 「制約条件」配列が1件でもある車両への移管は絶対に提案しないでください
+- 制約条件が空（[]）の車両にのみ移管を提案してください
+- 移管先候補がすべて制約ありの場合は、コース再編・時間帯変更など移管以外の改善策を提案してください
+- 対象車両と温度帯が異なる車両への移管は提案しないでください
 
 センター名: ${CENTERS[currentCenter].name}
 対象年月: ${currentMonth}
@@ -890,24 +906,44 @@ ${commonText}
 対象車両の蓄積済み個別制約条件:
 ${vehicleText}
 
-同センターの他車両データ（個別制約条件含む）:
-${otherVehicles}
+同センターの他車両データ（JSON形式。制約条件が空でない車両への移管は提案禁止）:
+${otherVehiclesJson}
 
 回答はプレーンテキストのみで返してください。HTMLタグ、マークダウン、装飾は一切使わないでください。`;
 
+  console.log('[Claude API] 送信プロンプト:\n', prompt);
+
   try{
     const apiKey = getStoredApiKey();
-    const response = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey},body:JSON.stringify({model:'claude-sonnet-4-20250514',messages:[{role:'user',content:prompt}]})});
-    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    const response = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:512,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    if(!response.ok){
+      const errBody = await response.text();
+      console.error('[Claude API] エラーレスポンス:', response.status, errBody);
+      throw new Error(`HTTP ${response.status}`);
+    }
     const result = await response.json();
-    const text = result.completion || result?.output?.text || '';
+    console.log('[Claude API] レスポンス:', result);
+    // Messages API: result.content[0].text（旧 result.completion は誤り）
+    const text = result.content?.[0]?.text || '';
     const cleanedText = cleanHtmlText(text);
     if(selectedVeh===index){
       if(contentEl) contentEl.textContent = cleanedText || fallbackText || '分析を取得できませんでした';
     }
   }catch(e){
     if(selectedVeh===index && contentEl) contentEl.textContent = fallbackText || '分析を取得できませんでした';
-    console.error('Claude API error',e);
+    console.error('[Claude API] エラー:', e);
   }
 }
 
