@@ -353,7 +353,7 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
   <div class="ap-modal-wrap">
     <div class="ap-modal">
       <div class="ap-alert"><i class="ti ti-alert-triangle" style="font-size:16px"></i>コスト乖離アラート：<strong id="ap-gap-disp">-</strong>　放置3日超 — エスカレーション済</div>
-      <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px">AI分析結果と改善アクション提案</div>
+      <div id="ap-modal-title" style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px">AI分析結果と改善アクション提案</div>
       <div class="ap-body" id="ap-body"></div>
       <div id="ap-reject-form" style="display:none;margin-top:16px;border-top:1px solid var(--bl);padding-top:14px">
         <div style="font-size:14px;font-weight:600;margin-bottom:10px">却下理由を選択してください</div>
@@ -881,6 +881,12 @@ const HYPO_CATEGORIES = [
   {id:'highcost',icon:'💰',label:'理論コスト高騰',desc:'車格・原価単価の構造的な問題によりコストが高止まり'},
   {id:'fleet',icon:'🚛',label:'車両構成の非効率',desc:'軽貨物依存度が高く、大型化による効率化余地がある'},
 ];
+const AP_TITLES = {
+  overtime:'運行時間超過車両の物量移管AP',
+  lowutil:'低稼働車両の稼働率改善AP',
+  highcost:'車格見直し・原価単価改善AP',
+  fleet:'軽貨物から大型車への移管AP'
+};
 
 function getAllConstraintTexts(){
   const common = centerCommonConstraints[currentCenter] || [];
@@ -899,8 +905,8 @@ function calculateHypoScoreBoosts(){
     const lower = text.toLowerCase();
     if(/道幅|高さ|車格|サイズ/.test(lower)) boost.fleet += 10;
     if(/温度帯|冷凍|冷蔵|混載/.test(lower)) boost.highcost += 10;
-    if(/時間指定|稼働日数|低稼働|空き時間|稼働率/.test(lower)) boost.lowutil += 10;
-    if(/運行時間|超過|渋滞|待ち|荷待ち/.test(lower)) boost.overtime += 10;
+    if(/稼働日数|低稼働|空き時間|稼働率/.test(lower)) boost.lowutil += 10;
+    if(/時間指定|運行時間|超過|渋滞|待ち|荷待ち/.test(lower)) boost.overtime += 10;
   });
   return boost;
 }
@@ -934,18 +940,6 @@ function getHypoVehicleSummary(catId){
   return `【該当車両】${ids.join('・')}で${labelMap[catId]||'該当事項'}を検知`;
 }
 
-function toggleHypoCard(id,event){
-  event.stopPropagation();
-  const card = document.getElementById('hypo-'+id);
-  if(!card) return;
-  card.classList.toggle('collapsed');
-  const button = card.querySelector('.hypo-toggle');
-  if(button){
-    const normalCount = HYPO_CATEGORIES.filter(cat=> getEffectiveHypoScores()[cat.id] < 60).length;
-    button.textContent = card.classList.contains('collapsed') ? `✓ 正常カテゴリ（${normalCount}件）を表示` : '✓ 正常カテゴリを閉じる';
-  }
-}
-
 function goToAP(category,event){
   event.stopPropagation();
   showStep(2, category);
@@ -953,26 +947,59 @@ function goToAP(category,event){
 
 function renderHypos(){
   const scores = getEffectiveHypoScores();
-  const normalCount = HYPO_CATEGORIES.filter(cat=> (scores[cat.id]||0) < 60).length;
-  document.getElementById('hypoContent').innerHTML = HYPO_CATEGORIES.map(cat=>{
+  const hitCats = HYPO_CATEGORIES.filter(cat => (scores[cat.id]||0) >= 60);
+  const normalCats = HYPO_CATEGORIES.filter(cat => (scores[cat.id]||0) < 60);
+
+  const hitHtml = hitCats.map(cat=>{
     const score = scores[cat.id]||0;
-    const hit = score>=60;
-    const vehicleSummary = hit ? getHypoVehicleSummary(cat.id) : '';
-    const cardClass = `hypo-card ${hit?'hit':'normal collapsed'}`;
-    return `<div class="${cardClass}" id="hypo-${cat.id}">
+    const vehicleSummary = getHypoVehicleSummary(cat.id);
+    return `<div class="hypo-card hit" id="hypo-${cat.id}">
       <div class="hypo-card-header">
         <span class="hypo-icon">${cat.icon}</span>
         <span class="hypo-name">${cat.label}</span>
-        <span class="status-pill ${hit?'s-high':'s-ok'}" style="font-size:11px">${hit?'⚠ 該当':'✓ 正常'}</span>
+        <span class="status-pill s-high" style="font-size:11px">⚠ 該当</span>
       </div>
-      ${!hit ? `<div class="hypo-toggle" onclick="toggleHypoCard('${cat.id}',event)">✓ 正常カテゴリ（${normalCount}件）を表示</div>` : ''}
       <div class="hypo-body">${cat.desc}</div>
       ${vehicleSummary ? `<div class="hypo-extra">${vehicleSummary}</div>` : ''}
-      <div class="hypo-meter"><div class="hypo-meter-fill" style="width:${score}%;background:${score>=60?'var(--red)':score>=40?'var(--amber)':'var(--green)'}"></div></div>
-      <div class="hypo-meter-label">スコア：${score}/100　${score>=60?'→ AP立案を推奨':'→ 継続監視'}</div>
-      ${hit ? `<div class="hypo-cta"><button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="goToAP('${cat.id}',event)">AP立案へ進む →</button></div>` : ''}
+      <div class="hypo-meter"><div class="hypo-meter-fill" style="width:${score}%;background:var(--red)"></div></div>
+      <div class="hypo-meter-label">スコア：${score}/100　→ AP立案を推奨</div>
+      <div class="hypo-cta"><button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="goToAP('${cat.id}',event)">AP立案へ進む →</button></div>
     </div>`;
   }).join('');
+
+  const normalHtml = normalCats.length > 0 ? `
+    <div style="margin-top:8px">
+      <div class="hypo-toggle" id="normalToggleBtn" onclick="toggleNormalCats(event)">✓ 正常カテゴリ（${normalCats.length}件）を表示 ▾</div>
+      <div id="normalCatsContainer" style="display:none">
+        ${normalCats.map(cat=>{
+          const score = scores[cat.id]||0;
+          return `<div class="hypo-card normal" id="hypo-${cat.id}">
+            <div class="hypo-card-header">
+              <span class="hypo-icon">${cat.icon}</span>
+              <span class="hypo-name">${cat.label}</span>
+              <span class="status-pill s-ok" style="font-size:11px">✓ 正常</span>
+            </div>
+            <div class="hypo-body">${cat.desc}</div>
+            <div class="hypo-meter"><div class="hypo-meter-fill" style="width:${score}%;background:${score>=40?'var(--amber)':'var(--green)'}"></div></div>
+            <div class="hypo-meter-label">スコア：${score}/100　→ 継続監視</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  document.getElementById('hypoContent').innerHTML = hitHtml + normalHtml;
+}
+
+function toggleNormalCats(event){
+  event.stopPropagation();
+  const container = document.getElementById('normalCatsContainer');
+  const btn = document.getElementById('normalToggleBtn');
+  if(!container || !btn) return;
+  const isHidden = container.style.display === 'none';
+  container.style.display = isHidden ? 'block' : 'none';
+  const scores = getEffectiveHypoScores();
+  const normalCount = HYPO_CATEGORIES.filter(cat=> (scores[cat.id]||0) < 60).length;
+  btn.textContent = isHidden ? `✓ 正常カテゴリ（${normalCount}件）を閉じる ▴` : `✓ 正常カテゴリ（${normalCount}件）を表示 ▾`;
 }
 
 function renderConstraints(){
@@ -1005,6 +1032,8 @@ function renderAP(category){
   const cat = category || selectedHypoCategory;
   selectedHypoCategory = cat || null;
   document.getElementById('ap-gap-disp').textContent = fmt(d.gap);
+  const titleEl = document.getElementById('ap-modal-title');
+  if(titleEl) titleEl.textContent = cat ? (AP_TITLES[cat] || 'AI分析結果と改善アクション提案') : 'AI分析結果と改善アクション提案';
   const text = cat ? (c.categoryAp?.[cat] || c.apBody) : c.apBody;
   document.getElementById('ap-body').innerHTML = (text||'').replace(/\n/g,'<br>');
   document.getElementById('ap-result').style.display='none';
