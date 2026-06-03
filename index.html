@@ -915,7 +915,7 @@ ${otherVehiclesJson}
 
   try{
     const apiKey = getStoredApiKey();
-    const response = await fetch('https://api.anthropic.com/v1/messages',{
+    const response = await fetch('https://anthropic-proxy.kurihara-takashi.workers.dev',{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
