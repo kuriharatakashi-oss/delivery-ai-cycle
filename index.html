@@ -553,17 +553,31 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
 // ===== DATA =====
 const MONTHS = ['2025年04月','2025年05月','2025年06月','2025年07月','2025年08月','2025年09月','2025年10月','2025年11月','2025年12月','2026年01月','2026年02月','2026年03月'];
 
-function genMonthData(baseActual, baseTheory, baseGapRate, vehicles){
+// センター別・月別乖離率（固定値）
+const CENTER_GAP_RATES = {
+  yashio:     [12.5, 13.0, 12.8, 14.2, 15.1, 14.8, 16.3, 16.8, 17.2, 18.1, 18.5, 19.0],
+  kawasaki:   [15.5, 16.2, 15.8, 17.4, 18.8, 19.2, 19.8, 20.1, 18.7, 17.9, 18.5, 19.1],
+  utsunomiya: [13.5, 14.0, 13.2, 12.8, 13.0, 12.5, 11.8, 11.5, 12.0, 10.8, 10.5, 10.3],
+  omiya:      [ 9.5, 10.0,  9.2,  8.8,  9.0,  8.5,  7.8,  7.5,  8.0,  6.8,  6.5,  6.3],
+  chiba:      [ 8.5,  9.0,  8.2,  7.8,  8.0,  7.5,  6.8,  6.5,  7.0,  5.8,  5.5,  5.3],
+};
+// 季節性スケール（決定論的、Math.random不使用）
+const MONTH_SCALE = [1.00,1.02,1.03,1.05,1.08,1.07,1.04,1.02,1.00,0.98,0.97,0.99];
+
+function genMonthData(baseActual, baseTheory, baseGapRate, vehicles, centerKey){
   return MONTHS.map((m,i)=>{
-    const noise = 0.85 + Math.random()*0.3;
-    const actual = Math.round(baseActual * noise);
-    const theory = Math.round(baseTheory * noise);
-    const gap = actual - theory;
-    return {month:m, actual, theory, gap, gapRate:Math.round(gap/theory*1000)/10, vehicles: vehicles.map(v=>({
+    const scale = MONTH_SCALE[i];
+    const theory = Math.round(baseTheory * scale);
+    const rates = CENTER_GAP_RATES[centerKey];
+    const gapRate = rates ? rates[i] : Math.round((baseActual/baseTheory - 1)*100*10)/10;
+    const gap = Math.round(theory * gapRate / 100);
+    const actual = theory + gap;
+    // 車両データも決定論的な季節変動に変更（sin波）
+    return {month:m, actual, theory, gap, gapRate, vehicles: vehicles.map(v=>({
       ...v,
-      theory: Math.round(v.theory * noise),
-      hours: Math.round((v.hours * (0.9+Math.random()*0.2))*10)/10,
-      days: Math.max(15, Math.min(31, v.days + Math.floor(Math.random()*5-2)))
+      theory: Math.round(v.theory * scale),
+      hours: Math.round((v.hours * (0.90 + 0.20 * Math.abs(Math.sin(i*0.7 + v.theory%3 * 0.3))))*10)/10,
+      days: Math.max(15, Math.min(31, v.days + Math.round(Math.sin(i*0.8)*2)))
     }))};
   });
 }
@@ -657,7 +671,7 @@ const centerData = {};
 Object.keys(CENTERS).forEach(k=>{
   const c = CENTERS[k];
   const base = {yashio:[50438,42233],utsunomiya:[38200,34500],omiya:[62100,58400],chiba:[44300,41800],kawasaki:[71500,60200]}[k];
-  centerData[k] = genMonthData(base[0],base[1],0,c.baseVehicles);
+  centerData[k] = genMonthData(base[0],base[1],0,c.baseVehicles,k);
 });
 
 let currentCenter='yashio', currentMonth='2026年03月';
