@@ -174,6 +174,35 @@ input[type=text]{font-size:13px;padding:8px 11px;border-radius:var(--r);border:1
 input[type=text]:focus{border-color:var(--blue)}
 select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1);cursor:pointer;outline:none}
 
+/* macro view — center comparison & trend */
+.center-bar-row{display:flex;align-items:center;gap:10px;padding:6px 8px;cursor:pointer;border-radius:var(--r);margin-bottom:3px}
+.center-bar-row:hover{background:var(--bg2)}
+.center-bar-row.active{background:var(--blue-l)}
+.center-bar-name-col{width:62px;flex-shrink:0}
+.center-bar-name{font-size:13px;font-weight:600;color:var(--t1)}
+.center-bar-middle{flex:1;min-width:0}
+.center-bar-track{height:10px;border-radius:99px;background:var(--bg3);overflow:hidden;margin-bottom:3px}
+.center-bar-fill{height:100%;border-radius:99px;transition:width .4s}
+.center-bar-detail{font-size:10px;color:var(--t2)}
+.center-bar-rate{font-size:14px;font-weight:700;width:48px;text-align:right;flex-shrink:0}
+.trend-label{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+.trend-up{background:var(--red-l);color:var(--red)}
+.trend-down{background:var(--green-l);color:var(--green)}
+.macro-section{border-left:3px solid;padding:10px 14px;margin-bottom:8px;border-radius:0 var(--r) var(--r) 0}
+.macro-section-issue{border-color:var(--red);background:var(--red-l)}
+.macro-section-compare{border-color:var(--amber);background:var(--amber-l)}
+.macro-section-action{border-color:var(--blue);background:var(--blue-l)}
+.macro-section-label{font-size:11px;font-weight:700;margin-bottom:5px}
+.macro-section-issue .macro-section-label{color:var(--red)}
+.macro-section-compare .macro-section-label{color:var(--amber)}
+.macro-section-action .macro-section-label{color:var(--blue-d)}
+.macro-section-text{font-size:13px;line-height:1.7}
+.macro-section-issue .macro-section-text{color:var(--red)}
+.macro-section-compare .macro-section-text{color:var(--amber)}
+.macro-section-action .macro-section-text{color:var(--blue)}
+.hypo-collapse-toggle{cursor:pointer;font-size:13px;font-weight:600;color:var(--t2);padding:8px 0;display:flex;align-items:center;gap:6px;user-select:none}
+.hypo-collapse-toggle:hover{color:var(--t1)}
+
 /* Kanban styles */
 .kanban{display:flex;gap:12px}
 .kanban-col{flex:1;background:var(--bg2);border:1px solid var(--bl);border-radius:10px;padding:8px;min-height:240px;display:flex;flex-direction:column}
@@ -356,12 +385,39 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
   </div>
 </div>
 
-<!-- ===== STEP 1: 仮説構築 ===== -->
+<!-- ===== STEP 1: 仮説構築（センター全体診断） ===== -->
 <div id="step1" class="section-hidden">
+  <!-- 上段：センター比較 + 月次トレンド -->
+  <div class="two-col" style="margin-bottom:0">
+    <div class="panel">
+      <div class="panel-title"><i class="ti ti-chart-bar" style="color:var(--blue)"></i>センター間コスト乖離比較 <span style="font-size:11px;font-weight:400;color:var(--t2)">クリックでセンター切替</span></div>
+      <div id="centerCompareContent"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title" style="justify-content:space-between">
+        <span><i class="ti ti-trending-up" style="color:var(--blue)"></i>月次乖離率トレンド&nbsp;<span id="trendCenterLabel" style="color:var(--blue);font-weight:400;font-size:12px"></span></span>
+        <span id="trendLabel"></span>
+      </div>
+      <div class="chart-wrap" style="height:190px"><canvas id="trendChartCanvas"></canvas></div>
+      <div id="trendSummary" style="margin-top:6px;font-size:12px;color:var(--t2)"></div>
+    </div>
+  </div>
+
+  <!-- AI総合診断 -->
+  <div class="panel" style="margin-bottom:16px">
+    <div class="panel-title"><i class="ti ti-brain" style="color:var(--blue)"></i>AI総合診断 <span id="macroDiagBadge" style="font-size:11px;font-weight:400;color:var(--t2);margin-left:4px"></span></div>
+    <div id="macroDiagContent"><div style="color:var(--t3);font-size:13px">APIキーを設定するとAI診断が有効になります。</div></div>
+  </div>
+
+  <!-- 仮説カテゴリ診断（折りたたみ）+ 蓄積済み制約条件 -->
   <div class="two-col">
     <div class="panel">
-      <div class="panel-title"><i class="ti ti-bulb" style="color:var(--blue)"></i>仮説カテゴリ診断</div>
-      <div id="hypoContent"></div>
+      <div class="hypo-collapse-toggle" onclick="toggleHypoCollapse()">
+        <i class="ti ti-chevron-right" id="hypoCollapseIcon" style="font-size:14px;transition:transform .15s"></i>仮説カテゴリ診断（車両別スコア）
+      </div>
+      <div id="hypoCollapseBody" style="display:none">
+        <div id="hypoContent" style="margin-top:8px"></div>
+      </div>
     </div>
     <div class="panel">
       <div class="panel-title"><i class="ti ti-database" style="color:var(--amber)"></i>蓄積済み制約条件</div>
@@ -607,7 +663,8 @@ Object.keys(CENTERS).forEach(k=>{
 let currentCenter='yashio', currentMonth='2026年03月';
 let selectedVeh=null;
 let selectedHypoCategory=null;
-let lineChart=null, ticketChart=null;
+let lineChart=null, ticketChart=null, trendChart=null;
+let hypoCollapsed=true;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 let expandedConstraintVehs = new Set();
 let pendingApFromSim = null; // {vno, title, saving, aiProposal} — ①→③フロー用
@@ -1048,6 +1105,146 @@ function formatAccumulatedConstraints(){
 function applySimulation(vno, title, saving){
   pendingApFromSim = {vno, title, saving, aiProposal: lastAiAnalysisText || null};
   showStep(2, null, true); // fromSim=true でpendingをクリアしない
+}
+
+// ===== MACRO VIEW =====
+function renderCenterComparison(){
+  const rows = Object.keys(CENTERS).map(k=>{
+    const arr = centerData[k];
+    const idx = arr.findIndex(d=>d.month===currentMonth);
+    const d = idx>=0 ? arr[idx] : arr[arr.length-1];
+    return {key:k, name:CENTERS[k].name.replace('センター',''), actual:d.actual, theory:d.theory, gap:d.gap, gapRate:d.gapRate};
+  }).sort((a,b)=>b.gapRate-a.gapRate);
+  const maxRate = Math.max(...rows.map(r=>r.gapRate), 1);
+  document.getElementById('centerCompareContent').innerHTML = rows.map(r=>{
+    const isActive = r.key===currentCenter;
+    const col = r.gapRate>15?'var(--red)':r.gapRate>10?'var(--amber)':'var(--green)';
+    const barPct = Math.round(r.gapRate/maxRate*100);
+    return `<div class="center-bar-row${isActive?' active':''}" onclick="changeCenter('${r.key}')">
+      <div class="center-bar-name-col"><div class="center-bar-name">${r.name}</div></div>
+      <div class="center-bar-middle">
+        <div class="center-bar-track"><div class="center-bar-fill" style="width:${barPct}%;background:${col}"></div></div>
+        <div class="center-bar-detail">乖離 +${r.gap.toLocaleString()}千円　実払 ${r.actual.toLocaleString()}千円</div>
+      </div>
+      <div class="center-bar-rate" style="color:${col}">${r.gapRate}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrendChart(){
+  if(trendChart){trendChart.destroy();trendChart=null;}
+  const data = centerData[currentCenter];
+  const labels = data.map(d=>d.month.replace('2025年','').replace('2026年',''));
+  const rates = data.map(d=>d.gapRate);
+  const last3avg = rates.slice(-3).reduce((a,b)=>a+b,0)/3;
+  const first3avg = rates.slice(0,3).reduce((a,b)=>a+b,0)/3;
+  const improving = last3avg < first3avg;
+  const lastRate = rates[rates.length-1];
+  const prevRate = rates[rates.length-2];
+  const diff = (lastRate-prevRate).toFixed(1);
+  const isUp = lastRate>prevRate;
+  const trendLabelEl = document.getElementById('trendLabel');
+  if(trendLabelEl) trendLabelEl.innerHTML = improving
+    ? '<span class="trend-label trend-down">↓ 改善傾向</span>'
+    : '<span class="trend-label trend-up">↑ 悪化傾向</span>';
+  const cl = document.getElementById('trendCenterLabel');
+  if(cl) cl.textContent = `— ${CENTERS[currentCenter].name}`;
+  const sumEl = document.getElementById('trendSummary');
+  if(sumEl){
+    const arrow = isUp?'↑':'↓';
+    const dc = isUp?'var(--red)':'var(--green)';
+    sumEl.innerHTML = `前月比 <strong style="color:${dc}">${arrow}${Math.abs(diff)}pt</strong>　直近3ヶ月平均: <strong>${last3avg.toFixed(1)}%</strong>`;
+  }
+  setTimeout(()=>{
+    const ctx = document.getElementById('trendChartCanvas');
+    if(!ctx) return;
+    trendChart = new Chart(ctx,{
+      type:'line',
+      data:{labels,datasets:[
+        {label:'乖離率(%)',data:rates,borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,0.08)',borderWidth:2,pointRadius:3,tension:0.3},
+        {label:'警告ライン(15%)',data:Array(12).fill(15),borderColor:'rgba(226,75,74,0.5)',borderDash:[4,4],borderWidth:1.5,pointRadius:0,backgroundColor:'transparent'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+        scales:{x:{ticks:{font:{size:10},maxTicksLimit:12}},y:{ticks:{font:{size:10},callback:v=>v+'%'},min:0}}
+      }
+    });
+  },50);
+}
+
+async function loadMacroDiagnosis(){
+  const el = document.getElementById('macroDiagContent');
+  const badge = document.getElementById('macroDiagBadge');
+  if(!hasApiKey()){
+    if(el) el.innerHTML='<div style="color:var(--t3);font-size:13px">APIキーを設定するとAI診断が有効になります。</div>';
+    return;
+  }
+  if(el) el.innerHTML='<div style="color:var(--t2);font-size:13px">AI診断中...</div>';
+  if(badge) badge.textContent=`— ${CENTERS[currentCenter].name}`;
+  const allData = Object.keys(CENTERS).map(k=>{
+    const arr = centerData[k];
+    const idx = arr.findIndex(d=>d.month===currentMonth);
+    const d = idx>=0?arr[idx]:arr[arr.length-1];
+    const trend3 = arr.slice(-3).map(m=>m.gapRate+'%').join('→');
+    return {センター:CENTERS[k].name, 乖離率:d.gapRate+'%', 乖離額:d.gap.toLocaleString()+'千円', 直近3ヶ月推移:trend3};
+  });
+  const prompt = `あなたは物流コスト改善の専門AIです。以下のセンターデータを分析してください。
+
+分析対象：${CENTERS[currentCenter].name}（${currentMonth}）
+
+【全センター比較データ（JSON）】
+${JSON.stringify(allData,null,2)}
+
+以下の形式で回答してください：
+【構造的課題】
+（分析対象センターの主要な構造的課題を2〜3文で）
+【他センター比較】
+（他センターとの比較と改善傾向のセンターの成功要因を2〜3文で）
+【推奨アクション】
+（優先度の高い改善アクションを2〜3文で）
+
+プレーンテキストのみ。HTMLタグ・マークダウン・装飾は不可。`;
+  try{
+    const apiKey = getStoredApiKey();
+    const res = await fetch('https://anthropic-proxy.kurihara-takashi.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result = await res.json();
+    const text = result.content?.[0]?.text||'';
+    if(el) el.innerHTML = renderMacroDiagSections(cleanHtmlText(text));
+  }catch(e){
+    if(el) el.innerHTML='<div style="color:var(--t2);font-size:13px">診断の取得に失敗しました。</div>';
+    console.error('[MacroDiag]',e);
+  }
+}
+
+function renderMacroDiagSections(text){
+  if(!text) return '';
+  const defs=[
+    {marker:'【構造的課題】',next:'【他センター比較】',cls:'macro-section-issue',icon:'📊',label:'構造的課題'},
+    {marker:'【他センター比較】',next:'【推奨アクション】',cls:'macro-section-compare',icon:'🔍',label:'他センター比較'},
+    {marker:'【推奨アクション】',next:null,cls:'macro-section-action',icon:'💡',label:'推奨アクション'},
+  ];
+  let html='';
+  defs.forEach(d=>{
+    if(!text.includes(d.marker)) return;
+    const after=(text.split(d.marker)[1]||'');
+    const content=d.next?(after.split(d.next)[0]||'').trim():after.trim();
+    if(content) html+=`<div class="macro-section ${d.cls}"><div class="macro-section-label">${d.icon} ${d.label}</div><div class="macro-section-text">${content.replace(/\n/g,'<br>')}</div></div>`;
+  });
+  return html||`<div style="font-size:13px;color:var(--t2)">${text.replace(/\n/g,'<br>')}</div>`;
+}
+
+function toggleHypoCollapse(){
+  hypoCollapsed=!hypoCollapsed;
+  const body=document.getElementById('hypoCollapseBody');
+  const icon=document.getElementById('hypoCollapseIcon');
+  if(body) body.style.display=hypoCollapsed?'none':'block';
+  if(icon) icon.style.transform=hypoCollapsed?'':'rotate(90deg)';
+  if(!hypoCollapsed) renderHypos();
 }
 
 // ===== HYPO =====
@@ -1511,7 +1708,7 @@ function showStep(n, category, fromSim){
     document.getElementById('step'+i).classList.toggle('section-hidden',i!==n);
     document.getElementById('tab'+i).classList.toggle('active',i===n);
   }
-  if(n===1){renderHypos();renderConstraints();}
+  if(n===1){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
   if(n===2) renderAP(category);
   if(n===3){renderTickets();setTimeout(drawTicketChart,50);}
 }
@@ -1521,13 +1718,13 @@ function changeCenter(val){
   selectedVeh=null;
   expandedConstraintVehs.clear();
   if(lineChart){lineChart.destroy();lineChart=null;}
+  if(trendChart){trendChart.destroy();trendChart=null;}
   updateSearchBar();
   renderVehTable();
   document.getElementById('selected-veh-label').textContent='';
   document.getElementById('right-panel-content').innerHTML=`<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左の表から車両を選択してください</span></div>`;
-  // update other screens so they reflect the new center
   try{
-    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
+    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
   }catch(e){console.warn('Error re-rendering screens after center change',e)}
@@ -1538,13 +1735,13 @@ function changeMonth(val){
   selectedVeh=null;
   expandedConstraintVehs.clear();
   if(lineChart){lineChart.destroy();lineChart=null;}
+  if(trendChart){trendChart.destroy();trendChart=null;}
   updateSearchBar();
   renderVehTable();
   document.getElementById('selected-veh-label').textContent='';
   document.getElementById('right-panel-content').innerHTML=`<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左の表から車両を選択してください</span></div>`;
-  // update other screens so they reflect the new month
   try{
-    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
+    if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
   }catch(e){console.warn('Error re-rendering screens after month change',e)}
