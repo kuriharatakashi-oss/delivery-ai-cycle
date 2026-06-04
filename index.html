@@ -850,7 +850,7 @@ let selectedVeh=null;
 let selectedHypoCategory=null;
 let lineChart=null, ticketChart=null, trendChart=null;
 let gmapsLoaded=false, gmapsLoading=null;
-let avoidHighways=true, gmapInst=null, gmapDirSvc=null, gmapDirRend=null;
+let avoidHighways=true, gmapInst=null, gmapPolyline=null, cachedMapLocations=null;
 let hypoCollapsed=true;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 let expandedConstraintVehs = new Set();
@@ -2018,80 +2018,147 @@ function loadGmaps(){
   return gmapsLoading;
 }
 
+// Geocoding API で住所→緯度経度に変換
+async function geocodeAddress(address){
+  const url=`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${getGmapsKey()}&language=ja&region=jp`;
+  const res=await fetch(url);
+  const data=await res.json();
+  if(data.status==='OK') return data.results[0].geometry.location; // {lat,lng}
+  throw new Error(`Geocoding failed: ${data.status} (${address})`);
+}
+
+// Routes API (v2) でルートの encoded polyline を取得
+async function getRoutePath(locs){
+  const toLoc=({lat,lng})=>({location:{latLng:{latitude:lat,longitude:lng}}});
+  const body={
+    origin:toLoc(locs[0]),
+    destination:toLoc(locs[locs.length-1]),
+    intermediates:locs.slice(1,-1).map(toLoc),
+    travelMode:'DRIVE',
+    routingPreference:'TRAFFIC_UNAWARE',
+    ...(avoidHighways?{routeModifiers:{avoidHighways:true}}:{}),
+  };
+  const res=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Goog-Api-Key':getGmapsKey(),'X-Goog-FieldMask':'routes.polyline.encodedPolyline'},
+    body:JSON.stringify(body)
+  });
+  const data=await res.json();
+  if(data.routes?.[0]?.polyline?.encodedPolyline) return data.routes[0].polyline.encodedPolyline;
+  throw new Error('Routes API: no polyline in response');
+}
+
+// Google Encoded Polyline decoder
+function decodePolyline(encoded){
+  const pts=[];let i=0,lat=0,lng=0;
+  while(i<encoded.length){
+    let b,shift=0,result=0;
+    do{b=encoded.charCodeAt(i++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
+    lat+=result&1?~(result>>1):(result>>1);
+    shift=result=0;
+    do{b=encoded.charCodeAt(i++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
+    lng+=result&1?~(result>>1):(result>>1);
+    pts.push({lat:lat/1e5,lng:lng/1e5});
+  }
+  return pts;
+}
+
+// ルート線のみ再描画（高速あり/なし切替時に使用）
+async function drawCourseRoute(){
+  if(!gmapInst||!cachedMapLocations) return;
+  if(gmapPolyline){gmapPolyline.setMap(null);gmapPolyline=null;}
+  const allLocs=[cachedMapLocations.center,...cachedMapLocations.stops];
+  try{
+    const encoded=await getRoutePath(allLocs);
+    gmapPolyline=new google.maps.Polyline({map:gmapInst,path:decodePolyline(encoded),strokeColor:'#185FA5',strokeWeight:4,strokeOpacity:.85});
+  }catch(e){
+    console.warn('[Maps] Routes API fallback to straight line:',e);
+    gmapPolyline=new google.maps.Polyline({map:gmapInst,path:allLocs,strokeColor:'#185FA5',strokeWeight:3,strokeOpacity:.55,geodesic:true});
+  }
+}
+
 function toggleHighway(){
   avoidHighways=!avoidHighways;
   const btn=document.getElementById('btnHighwayToggle');
   if(btn) btn.textContent=avoidHighways?'🛣 高速なし':'🛣 高速あり';
-  if(selectedCourse) showMapRoute(selectedCourse);
+  drawCourseRoute();
 }
 
 async function initCourseMap(course){
   const section=document.getElementById('courseMapSection');
   const mapEl=document.getElementById('courseMapEl');
   if(!section||!mapEl) return;
-  const cd = COURSE_DELIVERIES[currentCenter];
-  const stops = cd?.[course.id];
-  const center = cd?.center;
-  if(!stops||!center){ section.style.display='none'; return; }
-  section.style.display='';
-  const togBtn=document.getElementById('btnHighwayToggle');
-  if(!hasGmapsKey()){
-    if(togBtn) togBtn.style.display='none';
-    mapEl.innerHTML=renderDeliveryTable(stops);
-    return;
-  }
-  if(togBtn){togBtn.style.display='';togBtn.textContent=avoidHighways?'🛣 高速なし':'🛣 高速あり';}
-  mapEl.style.height='280px';
-  mapEl.innerHTML='<div style="padding:30px;text-align:center;color:var(--t2)">地図読み込み中...</div>';
-  try{
-    await loadGmaps();
-    gmapInst=new google.maps.Map(mapEl,{zoom:11,mapTypeControl:false,fullscreenControl:false,streetViewControl:false});
-    gmapDirSvc=new google.maps.DirectionsService();
-    gmapDirRend=new google.maps.DirectionsRenderer({map:gmapInst,suppressMarkers:true});
-    showMapRoute(course);
-  }catch(e){
-    mapEl.innerHTML='<div style="padding:16px;color:var(--red);font-size:13px">地図の読み込みに失敗しました。APIキーを確認してください。</div>';
-    console.error('[Maps]',e);
-  }
-}
-
-function showMapRoute(course){
-  if(!gmapInst||!gmapDirSvc||!gmapDirRend) return;
   const cd=COURSE_DELIVERIES[currentCenter];
   const stops=cd?.[course.id];
   const center=cd?.center;
-  if(!stops||!center) return;
-  const waypoints=stops.slice(0,-1).map(s=>({location:s.address,stopover:true}));
-  gmapDirSvc.route({
-    origin:center.address,
-    destination:stops[stops.length-1].address,
-    waypoints,
-    travelMode:google.maps.TravelMode.DRIVING,
-    avoidHighways,
-    region:'jp',
-  },(result,status)=>{
-    if(status==='OK'){
-      gmapDirRend.setDirections(result);
-      const legs=result.routes[0].legs;
-      // センターマーカー（青）
-      new google.maps.Marker({map:gmapInst,position:legs[0].start_location,
-        icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:'#185FA5',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},
-        title:center.name
+  if(!stops||!center){section.style.display='none';return;}
+  section.style.display='';
+  const togBtn=document.getElementById('btnHighwayToggle');
+
+  if(!hasGmapsKey()){
+    if(togBtn) togBtn.style.display='none';
+    mapEl.style.height='auto';
+    mapEl.innerHTML=renderDeliveryTable(stops);
+    return;
+  }
+
+  // API有効化案内
+  if(!section.querySelector('.map-api-note')){
+    const note=document.createElement('div');
+    note.className='map-api-note';
+    note.style.cssText='font-size:11px;padding:6px 10px;background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--r);margin-bottom:8px';
+    note.innerHTML='<i class="ti ti-info-circle" style="color:var(--amber);margin-right:4px"></i>Google Cloud Consoleで <strong>Maps JavaScript API</strong> / <strong>Geocoding API</strong> / <strong>Routes API</strong> を有効化してください。';
+    section.insertBefore(note,mapEl);
+  }
+
+  if(togBtn){togBtn.style.display='';togBtn.textContent=avoidHighways?'🛣 高速なし':'🛣 高速あり';}
+  mapEl.style.height='280px';
+  mapEl.innerHTML='<div style="padding:30px;text-align:center;color:var(--t2)">地図読み込み中...</div>';
+
+  try{
+    await loadGmaps();
+    mapEl.innerHTML='';
+    gmapInst=new google.maps.Map(mapEl,{zoom:11,mapTypeControl:false,fullscreenControl:false,streetViewControl:false});
+
+    // Geocoding API で住所→座標に変換
+    mapEl.insertAdjacentHTML('afterend','<div id="geocode-status" style="font-size:11px;color:var(--t2);text-align:center;padding:4px 0">住所を座標に変換中...</div>');
+    const centerLoc=await geocodeAddress(center.address);
+    const stopLocs=await Promise.all(stops.map(s=>geocodeAddress(s.address)));
+    document.getElementById('geocode-status')?.remove();
+
+    cachedMapLocations={center:centerLoc,stops:stopLocs};
+
+    // bounds に全点を含める
+    const bounds=new google.maps.LatLngBounds();
+    bounds.extend(centerLoc);
+    stopLocs.forEach(l=>bounds.extend(l));
+    gmapInst.fitBounds(bounds);
+
+    // センターマーカー（青丸）
+    new google.maps.Marker({map:gmapInst,position:centerLoc,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:'#185FA5',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},
+      title:center.name
+    });
+
+    // 納品先マーカー（番号付きオレンジ丸）
+    stops.forEach((stop,i)=>{
+      const iw=new google.maps.InfoWindow({content:`<div style="font-size:13px"><strong>${stop.name}</strong><br><span style="color:#666;font-size:11px">${stop.address}</span><br>時間指定: ${stop.time}</div>`});
+      const mk=new google.maps.Marker({map:gmapInst,position:stopLocs[i],
+        label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'700'},
+        icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#F97316',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},
+        title:stop.name
       });
-      // 納品先マーカー（番号付きオレンジ）
-      legs.forEach((leg,i)=>{
-        const iw=new google.maps.InfoWindow({content:`<div style="font-size:13px"><strong>${stops[i].name}</strong><br><span style="font-size:11px;color:#666">${stops[i].address}</span><br>時間指定: ${stops[i].time}</div>`});
-        const mk=new google.maps.Marker({map:gmapInst,position:leg.end_location,
-          label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'700'},
-          icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#F97316',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},
-          title:stops[i].name
-        });
-        mk.addListener('click',()=>iw.open(gmapInst,mk));
-      });
-    } else {
-      console.error('[Maps] Directions failed:',status);
-    }
-  });
+      mk.addListener('click',()=>iw.open(gmapInst,mk));
+    });
+
+    // Routes API でルート線を描画
+    await drawCourseRoute();
+
+  }catch(e){
+    document.getElementById('geocode-status')?.remove();
+    mapEl.innerHTML=`<div style="padding:16px;font-size:13px;color:var(--red)">地図の読み込みに失敗しました。<br>以下を確認してください：<br>・APIキーが正しいか<br>・Maps JavaScript API が有効か<br>・Geocoding API が有効か<br>・Routes API が有効か</div>`;
+    console.error('[Maps]',e);
+  }
 }
 
 function renderDeliveryTable(stops){
@@ -2138,6 +2205,10 @@ function selectCourse(courseId){
   const courses = CENTER_COURSES[currentCenter]||[];
   selectedCourse = courses.find(c=>c.id===courseId);
   if(!selectedCourse) return;
+  // コース切替時に地図キャッシュをリセット
+  gmapInst=null; gmapPolyline=null; cachedMapLocations=null;
+  const ms=document.getElementById('courseMapSection');
+  if(ms){ms.style.display='none';ms.querySelector('.map-api-note')?.remove();}
   renderCourseTable();
   document.getElementById('courseAiLabel').textContent = `— ${courseId}`;
   document.getElementById('timelineCourseLabel').textContent = `— ${courseId}`;
@@ -2315,7 +2386,7 @@ function changeCenter(val){
     if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
-    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); document.getElementById('courseAiContent').innerHTML='<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>コースを選択してください</span></div>'; document.getElementById('timelineContent').innerHTML='<div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div>'; document.getElementById('courseAiLabel').textContent=''; document.getElementById('timelineCourseLabel').textContent=''; const ms=document.getElementById('courseMapSection');if(ms) ms.style.display='none'; gmapInst=null;gmapDirSvc=null;gmapDirRend=null; }
+    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); document.getElementById('courseAiContent').innerHTML='<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>コースを選択してください</span></div>'; document.getElementById('timelineContent').innerHTML='<div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div>'; document.getElementById('courseAiLabel').textContent=''; document.getElementById('timelineCourseLabel').textContent=''; const ms=document.getElementById('courseMapSection');if(ms) ms.style.display='none'; gmapInst=null;gmapPolyline=null;cachedMapLocations=null; }
   }catch(e){console.warn('Error re-rendering screens after center change',e)}
 }
 
@@ -2333,7 +2404,7 @@ function changeMonth(val){
     if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
-    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); const ms2=document.getElementById('courseMapSection');if(ms2) ms2.style.display='none'; gmapInst=null;gmapDirSvc=null;gmapDirRend=null; }
+    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); const ms2=document.getElementById('courseMapSection');if(ms2) ms2.style.display='none'; gmapInst=null;gmapPolyline=null;cachedMapLocations=null; }
   }catch(e){console.warn('Error re-rendering screens after month change',e)}
 }
 
