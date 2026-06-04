@@ -564,6 +564,14 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
       <div id="courseAiContent">
         <div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>左のテーブルからコースを選択してください</span></div>
       </div>
+      <div id="courseMapSection" style="display:none;margin-top:14px;border-top:1px solid var(--bl);padding-top:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <i class="ti ti-map-pin" style="color:#F97316"></i>
+          <span style="font-size:13px;font-weight:600;color:var(--t1)">配送ルート</span>
+          <button id="btnHighwayToggle" class="btn" onclick="toggleHighway()" style="font-size:11px;padding:3px 10px;margin-left:auto;display:none">🛣 高速なし</button>
+        </div>
+        <div id="courseMapEl" style="border-radius:var(--r);overflow:hidden;border:1px solid var(--bl);min-height:20px"></div>
+      </div>
     </div>
   </div>
   <div class="panel" style="margin-top:16px">
@@ -579,7 +587,8 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
 <div id="apiKeyModal" class="modal-overlay">
   <div class="modal-box">
     <div style="font-size:16px;font-weight:700;margin-bottom:8px">APIキー設定</div>
-    <div class="modal-row"><label>APIキー</label><input id="apiKeyInput" type="text" placeholder="x-api-keyを入力"></div>
+    <div class="modal-row"><label>Claude API</label><input id="apiKeyInput" type="text" placeholder="x-api-keyを入力"></div>
+    <div class="modal-row"><label>Google Maps</label><input id="gmapsKeyInput" type="text" placeholder="Google Maps APIキーを入力"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeApiKeyModal()">キャンセル</button>
       <button class="btn" onclick="clearApiKey()" type="button">削除</button>
@@ -806,6 +815,28 @@ const CENTER_COURSES = {
   ],
 };
 
+// 配送ルートデータ（Google Maps表示用）
+const COURSE_DELIVERIES = {
+  yashio:{
+    center:{name:'八潮センター', address:'埼玉県八潮市新町38'},
+    'A-01':[
+      {no:1,name:'コモディイイダ越谷店',address:'埼玉県越谷市東越谷7-9-1',time:'08:00〜09:00'},
+      {no:2,name:'コモディイイダ川口青木店',address:'埼玉県川口市青木5-18-1',time:'09:30〜10:30'},
+      {no:3,name:'コモディイイダ東川口店',address:'埼玉県川口市安行吉岡1141',time:'10:30〜11:30'},
+      {no:4,name:'コモディイイダ草加店',address:'埼玉県草加市松原1-10-1',time:'12:00〜13:00'},
+      {no:5,name:'コモディイイダ八潮店',address:'埼玉県八潮市南後谷420-1',time:'13:30〜14:30'},
+      {no:6,name:'コモディイイダ三郷店',address:'埼玉県三郷市戸ヶ崎2-1-1',time:'15:00〜16:00'},
+    ],
+    'A-02':[
+      {no:1,name:'コモディイイダ北浦和店',address:'埼玉県さいたま市浦和区北浦和4-4-3',time:'08:00〜09:00'},
+      {no:2,name:'コモディイイダ中浦和店',address:'埼玉県さいたま市南区鹿手袋4-3-13',time:'09:30〜10:30'},
+      {no:3,name:'コモディイイダ南浦和店',address:'埼玉県さいたま市南区南浦和2-36-1',time:'10:30〜11:30'},
+      {no:4,name:'コモディイイダ東浦和店',address:'埼玉県さいたま市緑区大間木1733',time:'12:00〜13:00'},
+      {no:5,name:'コモディイイダ浦和駅前店',address:'埼玉県さいたま市浦和区高砂1-1-1',time:'13:30〜14:30'},
+    ],
+  }
+};
+
 // generate 12-month data per center
 const centerData = {};
 Object.keys(CENTERS).forEach(k=>{
@@ -818,6 +849,8 @@ let currentCenter='yashio', currentMonth='2026年03月';
 let selectedVeh=null;
 let selectedHypoCategory=null;
 let lineChart=null, ticketChart=null, trendChart=null;
+let gmapsLoaded=false, gmapsLoading=null;
+let avoidHighways=true, gmapInst=null, gmapDirSvc=null, gmapDirRend=null;
 let hypoCollapsed=true;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 let expandedConstraintVehs = new Set();
@@ -1218,10 +1251,14 @@ function updateApiKeyButton(){
   btn.style.color = active ? '#1B5E20' : '';
   btn.style.border = active ? '1px solid #1B5E20' : '';
 }
+function getGmapsKey(){ return localStorage.getItem('googleMapsApiKey')||''; }
+function hasGmapsKey(){ return !!getGmapsKey(); }
+
 function openApiKeyModal(){
   const m = document.getElementById('apiKeyModal');
   if(!m) return;
   document.getElementById('apiKeyInput').value = getStoredApiKey();
+  const gi = document.getElementById('gmapsKeyInput'); if(gi) gi.value = getGmapsKey();
   m.style.display = 'flex';
 }
 function closeApiKeyModal(){
@@ -1231,17 +1268,22 @@ function closeApiKeyModal(){
 }
 function saveApiKey(){
   const key = document.getElementById('apiKeyInput').value.trim();
-  if(key){
-    localStorage.setItem('anthropicApiKey', key);
-  } else {
-    localStorage.removeItem('anthropicApiKey');
-  }
+  if(key){ localStorage.setItem('anthropicApiKey', key); }
+  else { localStorage.removeItem('anthropicApiKey'); }
+  const oldMapsKey = getGmapsKey();
+  const mapsKey = (document.getElementById('gmapsKeyInput')?.value||'').trim();
+  if(mapsKey !== oldMapsKey){ gmapsLoaded=false; gmapsLoading=null; }
+  if(mapsKey){ localStorage.setItem('googleMapsApiKey', mapsKey); }
+  else { localStorage.removeItem('googleMapsApiKey'); }
   updateApiKeyButton();
   closeApiKeyModal();
 }
 function clearApiKey(){
   localStorage.removeItem('anthropicApiKey');
+  localStorage.removeItem('googleMapsApiKey');
   document.getElementById('apiKeyInput').value = '';
+  const gi = document.getElementById('gmapsKeyInput'); if(gi) gi.value = '';
+  gmapsLoaded=false; gmapsLoading=null;
   updateApiKeyButton();
 }
 
@@ -1962,6 +2004,113 @@ function submitAddTicket(){
   closeAddModal(); renderTickets(); updateTicketStats(); drawTicketChart();
 }
 
+// ===== GOOGLE MAPS =====
+function loadGmaps(){
+  if(window.google?.maps) return Promise.resolve();
+  if(gmapsLoading) return gmapsLoading;
+  gmapsLoading = new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=`https://maps.googleapis.com/maps/api/js?key=${getGmapsKey()}&language=ja`;
+    s.onload=()=>{gmapsLoaded=true;resolve();};
+    s.onerror=reject;
+    document.head.appendChild(s);
+  });
+  return gmapsLoading;
+}
+
+function toggleHighway(){
+  avoidHighways=!avoidHighways;
+  const btn=document.getElementById('btnHighwayToggle');
+  if(btn) btn.textContent=avoidHighways?'🛣 高速なし':'🛣 高速あり';
+  if(selectedCourse) showMapRoute(selectedCourse);
+}
+
+async function initCourseMap(course){
+  const section=document.getElementById('courseMapSection');
+  const mapEl=document.getElementById('courseMapEl');
+  if(!section||!mapEl) return;
+  const cd = COURSE_DELIVERIES[currentCenter];
+  const stops = cd?.[course.id];
+  const center = cd?.center;
+  if(!stops||!center){ section.style.display='none'; return; }
+  section.style.display='';
+  const togBtn=document.getElementById('btnHighwayToggle');
+  if(!hasGmapsKey()){
+    if(togBtn) togBtn.style.display='none';
+    mapEl.innerHTML=renderDeliveryTable(stops);
+    return;
+  }
+  if(togBtn){togBtn.style.display='';togBtn.textContent=avoidHighways?'🛣 高速なし':'🛣 高速あり';}
+  mapEl.style.height='280px';
+  mapEl.innerHTML='<div style="padding:30px;text-align:center;color:var(--t2)">地図読み込み中...</div>';
+  try{
+    await loadGmaps();
+    gmapInst=new google.maps.Map(mapEl,{zoom:11,mapTypeControl:false,fullscreenControl:false,streetViewControl:false});
+    gmapDirSvc=new google.maps.DirectionsService();
+    gmapDirRend=new google.maps.DirectionsRenderer({map:gmapInst,suppressMarkers:true});
+    showMapRoute(course);
+  }catch(e){
+    mapEl.innerHTML='<div style="padding:16px;color:var(--red);font-size:13px">地図の読み込みに失敗しました。APIキーを確認してください。</div>';
+    console.error('[Maps]',e);
+  }
+}
+
+function showMapRoute(course){
+  if(!gmapInst||!gmapDirSvc||!gmapDirRend) return;
+  const cd=COURSE_DELIVERIES[currentCenter];
+  const stops=cd?.[course.id];
+  const center=cd?.center;
+  if(!stops||!center) return;
+  const waypoints=stops.slice(0,-1).map(s=>({location:s.address,stopover:true}));
+  gmapDirSvc.route({
+    origin:center.address,
+    destination:stops[stops.length-1].address,
+    waypoints,
+    travelMode:google.maps.TravelMode.DRIVING,
+    avoidHighways,
+    region:'jp',
+  },(result,status)=>{
+    if(status==='OK'){
+      gmapDirRend.setDirections(result);
+      const legs=result.routes[0].legs;
+      // センターマーカー（青）
+      new google.maps.Marker({map:gmapInst,position:legs[0].start_location,
+        icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:'#185FA5',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},
+        title:center.name
+      });
+      // 納品先マーカー（番号付きオレンジ）
+      legs.forEach((leg,i)=>{
+        const iw=new google.maps.InfoWindow({content:`<div style="font-size:13px"><strong>${stops[i].name}</strong><br><span style="font-size:11px;color:#666">${stops[i].address}</span><br>時間指定: ${stops[i].time}</div>`});
+        const mk=new google.maps.Marker({map:gmapInst,position:leg.end_location,
+          label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'700'},
+          icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#F97316',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},
+          title:stops[i].name
+        });
+        mk.addListener('click',()=>iw.open(gmapInst,mk));
+      });
+    } else {
+      console.error('[Maps] Directions failed:',status);
+    }
+  });
+}
+
+function renderDeliveryTable(stops){
+  return `<div style="padding:4px 0"><table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="padding:6px 8px;background:var(--bg2);color:var(--t2);text-align:left;border-bottom:1px solid var(--bl);font-size:11px">#</th>
+      <th style="padding:6px 8px;background:var(--bg2);color:var(--t2);text-align:left;border-bottom:1px solid var(--bl);font-size:11px">店舗名</th>
+      <th style="padding:6px 8px;background:var(--bg2);color:var(--t2);text-align:left;border-bottom:1px solid var(--bl);font-size:11px">住所</th>
+      <th style="padding:6px 8px;background:var(--bg2);color:var(--t2);text-align:left;border-bottom:1px solid var(--bl);font-size:11px">時間指定</th>
+    </tr></thead>
+    <tbody>${stops.map(s=>`<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--bl);font-weight:700;color:#F97316">${s.no}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--bl);font-weight:600;white-space:nowrap">${s.name}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--bl);color:var(--t2);font-size:11px">${s.address}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid var(--bl);white-space:nowrap">${s.time}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
 // ===== COURSE ANALYSIS =====
 let selectedCourse = null;
 
@@ -2000,12 +2149,18 @@ function selectCourse(courseId){
   } else {
     aiEl.innerHTML='<div class="right-panel-empty"><i class="ti ti-key" style="font-size:28px"></i><span>APIキーを設定するとAI分析が有効になります</span></div>';
   }
+  initCourseMap(selectedCourse);
 }
 
-// 日ごとに異なる稼働時刻を決定論的に生成
+// 日ごとに異なる稼働時刻を決定論的に生成（ハッシュ混合で十分なバラつきを確保）
 function getDayTiming(course, day){
   const idNum = parseInt(course.id.split('-')[1]||'1');
-  let s = ((idNum*37 + day*97 + Math.round(course.endH*13)) % 65537 + 1)>>>0;
+  // 大きな素数乗算でシードを散らばらせる
+  let s = (idNum*1000003 + day*9999991 + Math.round(course.endH*999983))>>>0;
+  // FNV-like final mix
+  s = ((s^(s>>>16))*0x45d9f3b)>>>0;
+  s = ((s^(s>>>16)))>>>0;
+  if(s===0) s=1;
   const rand = ()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; };
   const v1=rand(), v2=rand(), v3=rand(), v4=rand();
   const eff = course.distance / course.deliveries;
@@ -2160,7 +2315,7 @@ function changeCenter(val){
     if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
-    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); document.getElementById('courseAiContent').innerHTML='<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>コースを選択してください</span></div>'; document.getElementById('timelineContent').innerHTML='<div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div>'; document.getElementById('courseAiLabel').textContent=''; document.getElementById('timelineCourseLabel').textContent=''; }
+    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); document.getElementById('courseAiContent').innerHTML='<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>コースを選択してください</span></div>'; document.getElementById('timelineContent').innerHTML='<div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div>'; document.getElementById('courseAiLabel').textContent=''; document.getElementById('timelineCourseLabel').textContent=''; const ms=document.getElementById('courseMapSection');if(ms) ms.style.display='none'; gmapInst=null;gmapDirSvc=null;gmapDirRend=null; }
   }catch(e){console.warn('Error re-rendering screens after center change',e)}
 }
 
@@ -2178,7 +2333,7 @@ function changeMonth(val){
     if(document.getElementById('step1') && !document.getElementById('step1').classList.contains('section-hidden')){renderCenterComparison();renderTrendChart();renderConstraints();if(!hypoCollapsed)renderHypos();if(hasApiKey())loadMacroDiagnosis();}
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
-    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); }
+    if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); const ms2=document.getElementById('courseMapSection');if(ms2) ms2.style.display='none'; gmapInst=null;gmapDirSvc=null;gmapDirRend=null; }
   }catch(e){console.warn('Error re-rendering screens after month change',e)}
 }
 
