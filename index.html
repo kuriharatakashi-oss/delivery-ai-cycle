@@ -119,9 +119,17 @@ body>*{max-width:100vw;overflow-x:hidden}
 .hypo-meter-fill{height:100%;border-radius:99px;background:var(--red);transition:width .4s}
 .hypo-meter-label{font-size:11px;color:var(--t2);margin-left:26px}
 
-/* AP page */
-.ap-modal-wrap{display:flex;align-items:flex-start;justify-content:center;padding:8px 0}
-.ap-modal{background:var(--bg);border:1px solid var(--bl);border-radius:var(--rl);padding:22px 24px;width:100%;max-width:600px}
+/* AP page – 2-column list layout */
+.ap-list-layout{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.ap-list-layout{grid-template-columns:1fr}}
+.ap-list-card{border:1px solid var(--bl);border-radius:var(--r);padding:11px 14px;margin-bottom:7px;cursor:pointer;transition:all .15s;background:var(--bg)}
+.ap-list-card:hover{border-color:var(--blue);background:var(--blue-l)}
+.ap-list-card.selected{border-color:var(--blue);background:var(--blue-l)}
+.ap-filter-btn{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--bm);background:var(--bg);color:var(--t2)}
+.ap-filter-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.s-rejected{background:var(--bg3);color:var(--t3)}
+/* AP page legacy (kept for detail panel) */
+.ap-modal-wrap{display:none}
 .ap-alert{background:var(--red-l);border:1px solid var(--red-b);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--red);font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .ap-body{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:14px}
 .ap-action-row{display:flex;gap:8px;flex-wrap:wrap}
@@ -509,44 +517,61 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
 
 <!-- ===== STEP 2: AP立案 ===== -->
 <div id="step2" class="section-hidden">
-  <div class="ap-modal-wrap">
-    <div class="ap-modal">
-      <div id="ap-alert-normal" class="ap-alert"><i class="ti ti-alert-triangle" style="font-size:16px"></i>コスト乖離アラート：<strong id="ap-gap-disp">-</strong>　放置3日超 — エスカレーション済</div>
-      <div id="ap-alert-ai" class="ap-alert" style="display:none;background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)"><i class="ti ti-sparkles" style="font-size:16px"></i>&nbsp;<span id="ap-alert-ai-msg"></span></div>
-      <div id="ap-modal-title" style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px">AI分析結果と改善アクション提案</div>
-      <div class="ap-body" id="ap-body"></div>
-      <div id="ap-reject-form" style="display:none;margin-top:16px;border-top:1px solid var(--bl);padding-top:14px">
-        <div style="font-size:14px;font-weight:600;margin-bottom:10px">却下理由を選択してください</div>
-        <div style="margin-bottom:12px">
-          <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">【理由カテゴリ】</label>
-          <select id="rejectCategory" onchange="updateRejectOptions()" style="width:100%;font-size:14px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2)">
-            <option value="">選択してください</option>
-            <option value="vehicle">車両・設備制約</option>
-            <option value="delivery">納品先制約</option>
-            <option value="operation">運用・契約制約</option>
-            <option value="info">情報不足</option>
-          </select>
+  <!-- サマリーカード -->
+  <div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat-card"><div class="stat-val" id="ap-cnt-pending" style="color:var(--red)">0</div><div class="stat-label">未対応</div></div>
+    <div class="stat-card"><div class="stat-val" id="ap-cnt-approved" style="color:var(--green)">0</div><div class="stat-label">承認済み</div></div>
+    <div class="stat-card"><div class="stat-val" id="ap-cnt-hold" style="color:var(--amber)">0</div><div class="stat-label">保留</div></div>
+    <div class="stat-card"><div class="stat-val" id="ap-cnt-rejected" style="color:var(--t3)">0</div><div class="stat-label">却下</div></div>
+  </div>
+  <!-- 2カラムレイアウト -->
+  <div class="ap-list-layout">
+    <!-- 左：AP一覧 -->
+    <div class="panel" style="display:flex;flex-direction:column;min-width:0">
+      <div class="panel-title"><i class="ti ti-list-check" style="color:var(--blue)"></i>AP一覧</div>
+      <div id="ap-list-filters" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div id="ap-list" style="overflow-y:auto;max-height:640px"></div>
+    </div>
+    <!-- 右：AP詳細 -->
+    <div class="panel" style="min-width:0">
+      <div id="ap-detail-wrap">
+        <div id="ap-alert-normal" class="ap-alert"><i class="ti ti-alert-triangle" style="font-size:16px"></i>コスト乖離アラート：<strong id="ap-gap-disp">-</strong>　放置3日超 — エスカレーション済</div>
+        <div id="ap-alert-ai" class="ap-alert" style="display:none;background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)"><i class="ti ti-sparkles" style="font-size:16px"></i>&nbsp;<span id="ap-alert-ai-msg"></span></div>
+        <div id="ap-modal-title" style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:10px">AP詳細</div>
+        <div class="ap-body" id="ap-body"><div style="color:var(--t3);font-size:13px;padding:30px 0;text-align:center"><i class="ti ti-hand-click" style="font-size:28px;display:block;margin-bottom:8px"></i>左の一覧からAPを選択してください</div></div>
+        <div id="ap-reject-form" style="display:none;margin-top:16px;border-top:1px solid var(--bl);padding-top:14px">
+          <div style="font-size:14px;font-weight:600;margin-bottom:10px">却下理由を選択してください</div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">【理由カテゴリ】</label>
+            <select id="rejectCategory" onchange="updateRejectOptions()" style="width:100%;font-size:14px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2)">
+              <option value="">選択してください</option>
+              <option value="vehicle">車両・設備制約</option>
+              <option value="delivery">納品先制約</option>
+              <option value="operation">運用・契約制約</option>
+              <option value="info">情報不足</option>
+            </select>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">この制約はどの車両に関するものですか？</label>
+            <select id="rejectVehicle" style="width:100%;font-size:14px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2)"></select>
+          </div>
+          <div id="rejectOptions" style="margin-bottom:12px"></div>
+          <div>
+            <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">【補足テキスト】</label>
+            <textarea id="rejectNote" placeholder="詳細な理由や補足情報があれば入力してください" style="width:100%;min-height:60px;font-size:13px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2);color:var(--t1);outline:none;resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+            <button class="btn" onclick="cancelReject()">キャンセル</button>
+            <button class="btn btn-primary" onclick="submitReject()">却下を確認</button>
+          </div>
         </div>
-        <div style="margin-bottom:12px">
-          <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">この制約はどの車両に関するものですか？</label>
-          <select id="rejectVehicle" style="width:100%;font-size:14px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2)"></select>
+        <div class="ap-action-row" id="ap-action-buttons" style="display:none">
+          <button class="btn btn-primary" onclick="apAction('approve')"><i class="ti ti-check"></i> 承認（実行）</button>
+          <button class="btn" onclick="apAction('hold')"><i class="ti ti-clock"></i> 保留（確認中）</button>
+          <button class="btn btn-danger" onclick="apAction('reject')"><i class="ti ti-x"></i> 却下（理由入力）</button>
         </div>
-        <div id="rejectOptions" style="margin-bottom:12px"></div>
-        <div>
-          <label style="font-size:13px;color:var(--t2);display:block;margin-bottom:6px">【補足テキスト】</label>
-          <textarea id="rejectNote" placeholder="詳細な理由や補足情報があれば入力してください" style="width:100%;min-height:60px;font-size:13px;padding:8px;border-radius:6px;border:1px solid var(--bm);background:var(--bg2);color:var(--t1);outline:none;resize:vertical"></textarea>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
-          <button class="btn" onclick="cancelReject()">キャンセル</button>
-          <button class="btn btn-primary" onclick="submitReject()">却下を確認</button>
-        </div>
+        <div id="ap-result" style="display:none" class="ap-result"></div>
       </div>
-      <div class="ap-action-row" id="ap-action-buttons">
-        <button class="btn btn-primary" onclick="apAction('approve')"><i class="ti ti-check"></i> 承認（実行）</button>
-        <button class="btn" onclick="apAction('hold')"><i class="ti ti-clock"></i> 保留（確認中）</button>
-        <button class="btn btn-danger" onclick="apAction('reject')"><i class="ti ti-x"></i> 却下（理由入力）</button>
-      </div>
-      <div id="ap-result" style="display:none" class="ap-result"></div>
     </div>
   </div>
 </div>
@@ -1007,7 +1032,8 @@ let selectedConstraintId=null, cmFilter='all', cmViewMode='center';
 let hypoCollapsed=true;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 let expandedConstraintVehs = new Set();
-let pendingApFromSim = null; // {vno, title, saving, aiProposal} — ①→③フロー用
+let pendingApFromSim = null;
+let selectedApId = null, apListFilter = 'all';
 let lastAiAnalysisText = ''; // 直近のAI分析テキスト（改善提案セクション用）
 
 // center-common accumulated constraints
@@ -1053,6 +1079,30 @@ const centerTickets = {
     {id:Date.now()+42,title:'No.021 配送先分散化の実行計画',status:'open',owner:'井上',due:'2026/04/20',next:''},
     {id:Date.now()+43,title:'No.037 非稼働日の原因調査',status:'over',owner:'木村',due:'2026/03/25',next:''},
     {id:Date.now()+44,title:'軽貨物依存度削減プラン策定',status:'open',owner:'',due:'2026/05/31',next:''},
+  ],
+};
+
+// AP提案データ（センター別）
+const centerApProposals = {
+  yashio:[
+    {id:'y-ot',vno:'センター全体',title:'運行時間超過車両の物量移管AP',category:'overtime',type:'hypo',status:'pending',createdAt:'2026-03-15',saving:380,body:'稼働時間超過車両の担当エリアを見直し、余裕のある車両へ物量を移管して稼働時間の平準化を図ってください。月間約380千円の削減が見込まれます。',aiProposal:null,isAiProposal:false},
+    {id:'y-lu',vno:'センター全体',title:'低稼働車両の稼働率改善AP',category:'lowutil',type:'hypo',status:'hold',createdAt:'2026-02-20',saving:150,body:'低稼働車両の固定費負担を軽減するため、稼働日数の改善と配送ルートの最適化を実施してください。月間約150千円の改善が見込まれます。',aiProposal:null,isAiProposal:false},
+  ],
+  utsunomiya:[
+    {id:'u-ot',vno:'センター全体',title:'運行時間超過車両の物量移管AP',category:'overtime',type:'hypo',status:'approved',createdAt:'2025-12-01',saving:180,body:'運行時間超過車両の担当エリアを見直し、余裕のある車両への配送先移管で稼働時間を平準化してください。月間約180千円の削減が見込まれます。',aiProposal:null,isAiProposal:false},
+    {id:'u-lu',vno:'センター全体',title:'低稼働車両の稼働率改善AP',category:'lowutil',type:'hypo',status:'pending',createdAt:'2026-01-10',saving:80,body:'低稼働車両の稼働日数増加と配送計画の見直しにより、固定費負担の軽減を図ってください。月間約80千円の改善が見込まれます。',aiProposal:null,isAiProposal:false},
+  ],
+  omiya:[
+    {id:'o-fl',vno:'センター全体',title:'軽貨物から大型車への移管AP',category:'fleet',type:'hypo',status:'pending',createdAt:'2026-03-05',saving:120,body:'車両構成効率化のため、軽貨物の一部を2〜3t車へ移管して配送コストを最適化してください。月間約120千円の改善が見込まれます。',aiProposal:null,isAiProposal:false},
+    {id:'o-ot',vno:'センター全体',title:'時間指定案件移管AP',category:'overtime',type:'hypo',status:'approved',createdAt:'2025-11-15',saving:90,body:'運行時間超過車両の時間指定案件を余裕のある車両へ移管して運行時間を適正化してください。月間約90千円の削減効果が確認されました。',aiProposal:null,isAiProposal:false},
+  ],
+  chiba:[
+    {id:'c-ot',vno:'センター全体',title:'担当エリア精査AP',category:'overtime',type:'hypo',status:'approved',createdAt:'2025-10-20',saving:80,body:'超過傾向の車両の担当エリアを再配分し、運行時間を標準レンジに戻してください。月間約80千円の最適化効果が確認されました。',aiProposal:null,isAiProposal:false},
+  ],
+  kawasaki:[
+    {id:'k-ot',vno:'センター全体',title:'夜間配送移行トライアルAP',category:'overtime',type:'hypo',status:'pending',createdAt:'2026-03-10',saving:600,body:'渋滞・駐停車制限への対策として夜間配送移行トライアルを実施し、運行時間の大幅削減を目指してください。月間▲600千円が目標です。',aiProposal:null,isAiProposal:false},
+    {id:'k-lu',vno:'センター全体',title:'低稼働車両の稼働率改善AP',category:'lowutil',type:'hypo',status:'pending',createdAt:'2026-03-10',saving:300,body:'低稼働車両の稼働日数増加と固定費対策として、需要の偏りを是正し稼働率を引き上げてください。月間約300千円の改善が見込まれます。',aiProposal:null,isAiProposal:false},
+    {id:'k-hc',vno:'センター全体',title:'車格見直し・原価単価改善AP',category:'highcost',type:'hypo',status:'rejected',createdAt:'2026-01-20',saving:200,body:'理論コスト高騰対策として車格と原価単価の見直しを行い、コスト効率の高い車両配分へ再編してください。',aiProposal:null,isAiProposal:false},
   ],
 };
 
@@ -1452,8 +1502,24 @@ function formatAccumulatedConstraints(){
 }
 
 function applySimulation(vno, title, saving){
-  pendingApFromSim = {vno, title, saving, aiProposal: lastAiAnalysisText || null};
-  showStep(2, null, true); // fromSim=true でpendingをクリアしない
+  const aiProposal = lastAiAnalysisText || null;
+  const parts = [];
+  if(aiProposal){
+    const hasI=aiProposal.includes('【現状課題】'), hasP=aiProposal.includes('【改善提案】');
+    if(hasI||hasP){
+      const ip=hasI?(aiProposal.split('【現状課題】')[1]||'').split('【改善提案】')[0].trim():'';
+      const pp=hasP?(aiProposal.split('【改善提案】')[1]||'').trim():'';
+      if(ip) parts.push(`【現状課題】\n${ip}`);
+      if(pp) parts.push(`【改善提案】\n${pp}`);
+    } else { parts.push(aiProposal); }
+  } else { parts.push(`${vno}の${title}を実施します。`); }
+  if(saving>0) parts.push(`推定削減効果：月間 ▲${saving.toLocaleString()}千円`);
+  const proposals = centerApProposals[currentCenter]||(centerApProposals[currentCenter]=[]);
+  const newAp = {id:`sim-${Date.now()}`,vno,title,category:null,type:'sim',status:'pending',createdAt:new Date().toISOString().slice(0,10),saving,body:parts.join('\n\n'),aiProposal,isAiProposal:true};
+  proposals.unshift(newAp);
+  selectedApId = newAp.id;
+  pendingApFromSim = null;
+  showStep(2, null, true);
 }
 
 // ===== MACRO VIEW =====
@@ -1757,58 +1823,116 @@ function removeConstraint(i){
 }
 
 // ===== AP =====
-function renderAP(category){
-  const d = getCurrentData();
-  const c = CENTERS[currentCenter];
-  document.getElementById('ap-gap-disp').textContent = fmt(d.gap);
+// ===== AP 2-COLUMN LAYOUT =====
+function getOrCreateHypoProposal(category){
+  const proposals = centerApProposals[currentCenter]||(centerApProposals[currentCenter]=[]);
+  let p = proposals.find(x=>x.category===category&&x.type==='hypo'&&x.status!=='rejected');
+  if(!p){
+    const c = CENTERS[currentCenter];
+    p = {id:`${currentCenter}-${category}-${Date.now()}`,vno:'センター全体',title:AP_TITLES[category]||'AI分析結果と改善アクション提案',category,type:'hypo',status:'pending',createdAt:new Date().toISOString().slice(0,10),saving:0,body:c.categoryAp?.[category]||c.apBody||'',aiProposal:null,isAiProposal:false};
+    proposals.push(p);
+  }
+  return p;
+}
+
+function renderApSummary(){
+  const proposals = centerApProposals[currentCenter]||[];
+  document.getElementById('ap-cnt-pending').textContent=proposals.filter(p=>p.status==='pending').length;
+  document.getElementById('ap-cnt-approved').textContent=proposals.filter(p=>p.status==='approved').length;
+  document.getElementById('ap-cnt-hold').textContent=proposals.filter(p=>p.status==='hold').length;
+  document.getElementById('ap-cnt-rejected').textContent=proposals.filter(p=>p.status==='rejected').length;
+}
+
+function renderApList(){
+  const proposals = centerApProposals[currentCenter]||[];
+  const filters=[{id:'all',label:'すべて'},{id:'pending',label:'未対応'},{id:'approved',label:'承認済み'},{id:'hold',label:'保留'},{id:'rejected',label:'却下'}];
+  document.getElementById('ap-list-filters').innerHTML=filters.map(f=>`<button class="ap-filter-btn${apListFilter===f.id?' active':''}" onclick="setApFilter('${f.id}')">${f.label}</button>`).join('');
+  const filtered=apListFilter==='all'?proposals:proposals.filter(p=>p.status===apListFilter);
+  const AP_STATUS={pending:{label:'未対応',cls:'s-high'},approved:{label:'承認済み',cls:'s-ok'},hold:{label:'保留',cls:'s-mid'},rejected:{label:'却下',cls:'s-rejected'}};
+  if(!filtered.length){document.getElementById('ap-list').innerHTML='<div style="color:var(--t3);font-size:13px;text-align:center;padding:20px 0">該当するAPがありません</div>';return;}
+  document.getElementById('ap-list').innerHTML=filtered.map(p=>{
+    const st=AP_STATUS[p.status]||AP_STATUS.pending;
+    const isSel=p.id===selectedApId;
+    return `<div class="ap-list-card${isSel?' selected':''}" onclick="selectApProposal('${p.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:700;color:var(--t1)">${p.vno}</span>
+        <span class="status-pill ${st.cls}" style="font-size:10px;padding:2px 7px">${st.label}</span>
+      </div>
+      <div style="font-size:12px;color:var(--t1);margin-bottom:4px">${p.title}</div>
+      <div style="font-size:11px;color:var(--t3)">生成日: ${p.createdAt}${p.saving>0?' · ▲'+p.saving.toLocaleString()+'千円':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function setApFilter(f){ apListFilter=f; renderApList(); }
+
+function selectApProposal(id){
+  selectedApId=id;
+  renderApList();
+  const proposals=centerApProposals[currentCenter]||[];
+  const p=proposals.find(x=>x.id===id);
+  if(p) renderApDetail(p);
+}
+
+function renderApDetail(p){
+  const d=getCurrentData();
+  document.getElementById('ap-gap-disp').textContent=fmt(d.gap);
   document.getElementById('ap-result').style.display='none';
   document.getElementById('ap-reject-form').style.display='none';
-  document.getElementById('ap-action-buttons').style.display='flex';
   updateRejectVehicleOptions();
-
-  if(pendingApFromSim){
-    // ①データ分析「このプランをAPとして採用する」から遷移してきた場合
-    const p = pendingApFromSim;
-
-    // アラートをAI提案用に切替（青系）
-    document.getElementById('ap-alert-normal').style.display = 'none';
-    const aiAlert = document.getElementById('ap-alert-ai');
-    aiAlert.style.display = 'flex';
-    document.getElementById('ap-alert-ai-msg').textContent =
-      `${p.vno} のAI提案APです。内容を確認して承認してください。`;
-
-    const titleEl = document.getElementById('ap-modal-title');
-    if(titleEl) titleEl.textContent = `${p.vno}：${p.title}`;
-
-    const parts = [];
-    if(p.aiProposal){
-      const hasIssue = p.aiProposal.includes('【現状課題】');
-      const hasProposal = p.aiProposal.includes('【改善提案】');
-      if(hasIssue || hasProposal){
-        const issuePart = hasIssue ? (p.aiProposal.split('【現状課題】')[1]||'').split('【改善提案】')[0].trim() : '';
-        const proposalPart = hasProposal ? (p.aiProposal.split('【改善提案】')[1]||'').trim() : '';
-        if(issuePart) parts.push(`【現状課題】\n${issuePart}`);
-        if(proposalPart) parts.push(`【改善提案】\n${proposalPart}`);
-      } else {
-        parts.push(p.aiProposal);
-      }
-    } else {
-      parts.push(`${p.vno}の${p.title}を実施します。`);
-    }
-    if(p.saving > 0) parts.push(`推定削減効果：月間 ▲${p.saving.toLocaleString()}千円`);
-    document.getElementById('ap-body').innerHTML = parts.join('\n\n').replace(/\n/g,'<br>');
-    return;
+  if(p.isAiProposal||p.type==='sim'){
+    document.getElementById('ap-alert-normal').style.display='none';
+    const aa=document.getElementById('ap-alert-ai'); aa.style.display='flex';
+    document.getElementById('ap-alert-ai-msg').textContent=`${p.vno} のAI提案APです。内容を確認して承認してください。`;
+    document.getElementById('ap-modal-title').textContent=`${p.vno}：${p.title}`;
+  } else {
+    document.getElementById('ap-alert-normal').style.display='';
+    document.getElementById('ap-alert-ai').style.display='none';
+    document.getElementById('ap-modal-title').textContent=p.title;
   }
+  document.getElementById('ap-body').innerHTML=(p.body||'').replace(/\n/g,'<br>');
+  const ab=document.getElementById('ap-action-buttons');
+  const res=document.getElementById('ap-result');
+  if(p.status==='approved'){
+    ab.style.display='none'; res.style.display='block';
+    res.style.background='var(--green-l)'; res.style.color='var(--green)';
+    res.textContent='✓ 承認済みです。アクション管理のチケットを確認してください。';
+  } else if(p.status==='rejected'){
+    ab.style.display='none'; res.style.display='block';
+    res.style.background='var(--bg3)'; res.style.color='var(--t3)';
+    res.textContent='却下済みです。却下理由は制約条件に記録されました。';
+  } else {
+    ab.style.display='flex'; res.style.display='none';
+  }
+}
 
-  // 通常フロー（仮説カテゴリから遷移 or タブ直接クリック）— 通常アラートを復元
-  document.getElementById('ap-alert-normal').style.display = '';
-  document.getElementById('ap-alert-ai').style.display = 'none';
-  const cat = category || selectedHypoCategory;
-  selectedHypoCategory = cat || null;
-  const titleEl = document.getElementById('ap-modal-title');
-  if(titleEl) titleEl.textContent = cat ? (AP_TITLES[cat] || 'AI分析結果と改善アクション提案') : 'AI分析結果と改善アクション提案';
-  const text = cat ? (c.categoryAp?.[cat] || c.apBody) : c.apBody;
-  document.getElementById('ap-body').innerHTML = (text||'').replace(/\n/g,'<br>');
+function renderAP(category){
+  renderApSummary();
+  apListFilter='all';
+  if(category){
+    const p=getOrCreateHypoProposal(category);
+    selectedApId=p.id;
+    selectedHypoCategory=category;
+  } else if(!selectedApId){
+    const proposals=centerApProposals[currentCenter]||[];
+    if(proposals.length>0) selectedApId=proposals[0].id;
+  }
+  renderApList();
+  if(selectedApId){
+    const proposals=centerApProposals[currentCenter]||[];
+    const p=proposals.find(x=>x.id===selectedApId);
+    if(p) renderApDetail(p); else { selectedApId=null; showEmptyApDetail(); }
+  } else { showEmptyApDetail(); }
+}
+
+function showEmptyApDetail(){
+  document.getElementById('ap-alert-normal').style.display='none';
+  document.getElementById('ap-alert-ai').style.display='none';
+  document.getElementById('ap-modal-title').textContent='AP詳細';
+  document.getElementById('ap-body').innerHTML='<div style="color:var(--t3);font-size:13px;padding:30px 0;text-align:center"><i class="ti ti-hand-click" style="font-size:28px;display:block;margin-bottom:8px"></i>左の一覧からAPを選択してください</div>';
+  document.getElementById('ap-action-buttons').style.display='none';
+  document.getElementById('ap-result').style.display='none';
+  document.getElementById('ap-reject-form').style.display='none';
 }
 
 // AP reject options by category
@@ -1899,48 +2023,45 @@ function submitReject(){
   res.innerHTML = `✓ 却下理由を記録しました<br><small style="font-size:11px">「${reason}」${note?'（補足：'+note+'）':''}</small>`;
   
   renderConstraints();
-  // close form
-  setTimeout(()=>cancelReject(), 1500);
+  // close form and update AP status
+  setTimeout(()=>{
+    const proposals=centerApProposals[currentCenter]||[];
+    const p=proposals.find(x=>x.id===selectedApId);
+    if(p) p.status='rejected';
+    cancelReject();
+    const res=document.getElementById('ap-result');
+    res.style.display='block'; res.style.background='var(--bg3)'; res.style.color='var(--t3)';
+    res.textContent='却下しました。却下理由は制約条件に記録されました。';
+    document.getElementById('ap-action-buttons').style.display='none';
+    renderApSummary(); renderApList();
+  }, 1500);
 }
 
 function apAction(type){
+  const proposals=centerApProposals[currentCenter]||[];
+  const proposal=proposals.find(x=>x.id===selectedApId);
   const res=document.getElementById('ap-result');
   const rf=document.getElementById('ap-reject-form');
   const ab=document.getElementById('ap-action-buttons');
-  if(type==='reject'){
-    ab.style.display='none';
-    rf.style.display='block';
-    return;
-  }
-  rf.style.display='none';
-  ab.style.display='flex';
+  if(type==='reject'){ ab.style.display='none'; rf.style.display='block'; return; }
+  rf.style.display='none'; ab.style.display='flex';
   if(type==='approve'){
-    res.style.display='block';
-    res.style.background='var(--green-l)';
-    res.style.color='var(--green)';
+    if(proposal) proposal.status='approved';
+    res.style.display='block'; res.style.background='var(--green-l)'; res.style.color='var(--green)';
     res.textContent='✓ 承認しました。アクション管理にチケットが追加されました。';
-    if(pendingApFromSim){
-      // ①→③フロー：チケットをAIバッジ付きで追加し④へ遷移
-      const p = pendingApFromSim;
-      const arr = centerTickets[currentCenter]||(centerTickets[currentCenter]=[]);
-      const savingNote = p.saving > 0 ? `推定削減：月間 ▲${p.saving.toLocaleString()}千円` : '';
-      arr.unshift({
-        id: Date.now(),
-        title: `${p.vno}：${p.title}`,
-        status: 'open',
-        owner: '',
-        due: '',
-        next: savingNote,
-        isAiProposal: true
-      });
-      pendingApFromSim = null;
-      setTimeout(()=>showStep(3), 900);
+    // チケット追加
+    const arr=centerTickets[currentCenter]||(centerTickets[currentCenter]=[]);
+    if(proposal){
+      arr.unshift({id:Date.now(),title:`${proposal.vno}：${proposal.title}`,status:'open',owner:'',due:'',next:proposal.saving>0?`推定削減：月間 ▲${proposal.saving.toLocaleString()}千円`:'',isAiProposal:proposal.isAiProposal||proposal.type==='sim'});
     }
+    pendingApFromSim=null;
+    renderApSummary(); renderApList();
+    setTimeout(()=>showStep(3), 900);
   } else {
-    res.style.display='block';
-    res.style.background='var(--amber-l)';
-    res.style.color='var(--amber)';
+    if(proposal) proposal.status='hold';
+    res.style.display='block'; res.style.background='var(--amber-l)'; res.style.color='var(--amber)';
     res.textContent='保留中です。確認完了後に承認してください。';
+    renderApSummary(); renderApList();
   }
 }
 
@@ -2812,7 +2933,7 @@ function escalateConstraint(id){
 
 function showStep(n, category, fromSim){
   // タブ直接クリックまたは仮説→③遷移のとき、sim由来の保留データをクリア
-  if(n===2 && !fromSim) pendingApFromSim = null;
+  if(n===2 && !fromSim){ pendingApFromSim=null; selectedApId=null; }
   for(let i=0;i<6;i++){
     document.getElementById('step'+i)?.classList.toggle('section-hidden',i!==n);
     document.getElementById('tab'+i)?.classList.toggle('active',i===n);
