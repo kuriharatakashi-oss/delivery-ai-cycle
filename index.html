@@ -176,6 +176,43 @@ input[type=text]{font-size:13px;padding:8px 11px;border-radius:var(--r);border:1
 input[type=text]:focus{border-color:var(--blue)}
 select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1);cursor:pointer;outline:none}
 
+/* constraint management tab */
+.cm-layout{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.cm-layout{grid-template-columns:1fr}}
+.cm-card{border:1px solid var(--bl);border-radius:var(--r);padding:11px 14px;margin-bottom:7px;cursor:pointer;transition:all .15s;background:var(--bg)}
+.cm-card:hover{border-color:var(--blue);background:var(--blue-l)}
+.cm-card.selected{border-color:var(--blue);background:var(--blue-l)}
+.cm-card-vno{font-size:12px;font-weight:700;color:var(--t1)}
+.cm-card-content{font-size:12px;color:var(--t1);margin:3px 0 5px}
+.cm-card-meta{font-size:10px;color:var(--t3);display:flex;gap:4px;flex-wrap:wrap}
+.cm-filter-btn{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--bm);background:var(--bg);color:var(--t2)}
+.cm-filter-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+/* cycle progress */
+.cycle-bar{display:flex;gap:0;margin-bottom:16px}
+.cycle-step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+.cycle-step:not(:last-child)::after{content:'';position:absolute;top:13px;left:50%;width:100%;height:2px;background:var(--bg3);z-index:0}
+.cycle-step.done::after{background:var(--green)}
+.cycle-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;z-index:1;border:2px solid;flex-shrink:0}
+.cycle-step.done .cycle-dot{background:var(--green-l);border-color:var(--green);color:var(--green)}
+.cycle-step.current .cycle-dot{background:#FEF3C7;border-color:#F97316;color:#F97316}
+.cycle-step.future .cycle-dot{background:#EDE9FE;border-color:#7C3AED;color:#7C3AED}
+.cycle-label{font-size:10px;color:var(--t3);margin-top:4px;text-align:center;line-height:1.3}
+.cycle-step.done .cycle-label{color:var(--green)}
+.cycle-step.current .cycle-label{color:#F97316;font-weight:700}
+.cycle-step.future .cycle-label{color:#7C3AED}
+/* AI diag */
+.ai-diag-box{background:#EDE9FE;border:1px solid #C4B5FD;border-radius:var(--r);padding:12px 14px;margin-bottom:14px}
+.ai-diag-title{font-size:11px;font-weight:700;color:#5B21B6;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.ai-diag-body{font-size:13px;color:#5B21B6;line-height:1.7}
+/* action grid */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.action-item{border:1px solid var(--bl);border-radius:var(--r);padding:9px 11px;background:var(--bg)}
+.action-add{border:2px dashed var(--bm);border-radius:var(--r);padding:10px;text-align:center;cursor:pointer;color:var(--t3);font-size:12px;background:transparent;display:flex;align-items:center;justify-content:center;gap:4px}
+.action-add:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.ast-done{background:var(--green-l);color:var(--green)}
+.ast-inprogress{background:var(--amber-l);color:var(--amber)}
+.ast-planned{background:var(--bg3);color:var(--t2)}
+
 /* course analysis */
 .course-table{width:100%;border-collapse:collapse;font-size:13px}
 .course-table th{padding:7px 10px;border-bottom:1px solid var(--bl);color:var(--t2);font-weight:600;text-align:left;font-size:11px;background:var(--bg2);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
@@ -337,6 +374,7 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
     <button class="step-btn" id="tab2" onclick="showStep(2)"><span class="step-num" id="sn2">3</span>AP立案</button>
     <button class="step-btn" id="tab3" onclick="showStep(3)"><span class="step-num" id="sn3">4</span>アクション管理</button>
     <button class="step-btn" id="tab4" onclick="showStep(4)"><span class="step-num" id="sn4">5</span>コース分析</button>
+    <button class="step-btn" id="tab5" onclick="showStep(5)"><span class="step-num" id="sn5">6</span>制約管理</button>
   </div>
   <div class="topbar-right" style="display:flex;align-items:center;gap:10px">
     <button id="apiKeyBtn" class="btn" style="padding:6px 10px;font-size:12px;white-space:nowrap" onclick="openApiKeyModal()">🔑 APIキー設定</button>
@@ -577,6 +615,32 @@ select{font-size:13px;padding:5px 9px;border-radius:var(--r);border:1px solid va
   <div class="panel" style="margin-top:16px">
     <div class="panel-title"><i class="ti ti-calendar-time" style="color:var(--blue)"></i>日別稼働タイムライン <span id="timelineCourseLabel" style="font-size:12px;color:var(--blue);font-weight:400"></span></div>
     <div id="timelineContent"><div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div></div>
+  </div>
+</div>
+
+<!-- ===== STEP 5: 制約条件管理 ===== -->
+<div id="step5" class="section-hidden">
+  <!-- サマリーカード -->
+  <div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat-card"><div class="stat-val" id="cm-review" style="color:var(--red)">0</div><div class="stat-label">要見直し</div></div>
+    <div class="stat-card"><div class="stat-val" id="cm-inprogress" style="color:var(--amber)">0</div><div class="stat-label">実施中</div></div>
+    <div class="stat-card"><div class="stat-val" id="cm-resolved" style="color:var(--green)">0</div><div class="stat-label">解消済み</div></div>
+    <div class="stat-card"><div class="stat-val" id="cm-total" style="color:var(--blue)">0</div><div class="stat-label">総件数</div></div>
+  </div>
+  <!-- メイン2カラム -->
+  <div class="cm-layout">
+    <div class="panel" style="display:flex;flex-direction:column;min-width:0">
+      <div class="panel-title"><i class="ti ti-lock" style="color:var(--blue)"></i>制約条件一覧</div>
+      <div id="cm-filters" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div id="cm-list" style="overflow-y:auto;max-height:640px"></div>
+    </div>
+    <div class="panel" style="min-width:0">
+      <div id="cm-detail">
+        <div style="color:var(--t3);font-size:13px;padding:40px 0;text-align:center">
+          <i class="ti ti-hand-click" style="font-size:28px;display:block;margin-bottom:8px"></i>左の一覧から制約条件を選択してください
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -837,6 +901,35 @@ const COURSE_DELIVERIES = {
   }
 };
 
+// ===== MANAGED CONSTRAINTS DATA =====
+const MANAGED_CONSTRAINTS = {
+  yashio:[
+    {id:1001,vehicleNo:'No.046',category:'車両・設備制約',content:'道幅制限（2t車以下）',note:'特定配送先の搬入路が狭く大型車進入不可',status:'review',registeredAt:'2025-10-01',cycleStep:2,nextReview:'2026-07-01',remind:'1週間前',aiDiagnosis:null,
+     actions:[{id:1,text:'現地確認実施',status:'done',date:'2025-10-15'},{id:2,text:'代替ルート調査',status:'done',date:'2025-11-01'},{id:3,text:'代替車両（軽）への切替検討',status:'planned',date:'2026-07-10'}]},
+    {id:1002,vehicleNo:'センター共通',category:'納品先制約',content:'指定納品時間：10〜14時のみ',note:'複数店舗で午後の時間指定が集中',status:'inprogress',registeredAt:'2025-09-15',cycleStep:3,nextReview:'2026-06-30',remind:'2週間前',aiDiagnosis:null,
+     actions:[{id:4,text:'納品先との交渉開始',status:'done',date:'2025-10-01'},{id:5,text:'早朝配送枠の確認',status:'inprogress',date:'2026-04-01'},{id:6,text:'配送ルート再設計',status:'planned',date:'2026-07-01'}]},
+    {id:1003,vehicleNo:'No.088',category:'運用・契約制約',content:'エリア固定（担当変更不可）',note:'ドライバーの個人担当制が慣例化',status:'review',registeredAt:'2025-12-01',cycleStep:1,nextReview:'2026-06-15',remind:'3日前',aiDiagnosis:null,actions:[]},
+    {id:1004,vehicleNo:'センター共通',category:'車両・設備制約',content:'冷凍/冷蔵：温度帯混載不可',note:'',status:'resolved',registeredAt:'2025-08-01',cycleStep:4,nextReview:'',remind:'',aiDiagnosis:null,
+     actions:[{id:7,text:'温度帯別コース設計',status:'done',date:'2025-08-15'},{id:8,text:'車両入替完了',status:'done',date:'2025-09-30'}]},
+  ],
+  kawasaki:[
+    {id:2001,vehicleNo:'No.008',category:'納品先制約',content:'駐車・停車制限あり（都市部）',note:'昼間駐停車禁止エリアを多数担当',status:'inprogress',registeredAt:'2025-11-01',cycleStep:2,nextReview:'2026-07-15',remind:'1週間前',aiDiagnosis:null,
+     actions:[{id:9,text:'夜間配送への切替検討',status:'inprogress',date:'2026-03-01'},{id:10,text:'荷捌き場利用申請',status:'planned',date:'2026-06-01'}]},
+    {id:2002,vehicleNo:'No.014',category:'運用・契約制約',content:'時間指定制約あり（昼間固定）',note:'',status:'review',registeredAt:'2026-01-15',cycleStep:1,nextReview:'2026-06-20',remind:'3日前',aiDiagnosis:null,actions:[]},
+  ],
+  utsunomiya:[
+    {id:3001,vehicleNo:'No.011',category:'車両・設備制約',content:'車格制限（冬季迂回ルート）',note:'積雪期に特定道路が通行不可',status:'review',registeredAt:'2025-12-15',cycleStep:2,nextReview:'2026-10-01',remind:'1ヶ月前',aiDiagnosis:null,
+     actions:[{id:11,text:'冬季代替ルートの策定',status:'done',date:'2026-01-10'}]},
+  ],
+  omiya:[
+    {id:4001,vehicleNo:'センター共通',category:'納品先制約',content:'搬入口サイズ制限（高さ2.5m以下）',note:'',status:'inprogress',registeredAt:'2025-10-20',cycleStep:3,nextReview:'2026-07-30',remind:'2週間前',aiDiagnosis:null,
+     actions:[{id:12,text:'低床車両への変更検討',status:'done',date:'2025-11-01'},{id:13,text:'代替搬入口の確認',status:'inprogress',date:'2026-04-15'}]},
+  ],
+  chiba:[
+    {id:5001,vehicleNo:'No.006',category:'運用・契約制約',content:'ドライバーのエリア担当固定',note:'',status:'review',registeredAt:'2026-02-01',cycleStep:1,nextReview:'2026-08-01',remind:'1週間前',aiDiagnosis:null,actions:[]},
+  ],
+};
+
 // generate 12-month data per center
 const centerData = {};
 Object.keys(CENTERS).forEach(k=>{
@@ -851,6 +944,7 @@ let selectedHypoCategory=null;
 let lineChart=null, ticketChart=null, trendChart=null;
 let gmapsLoaded=false, gmapsLoading=null;
 let avoidHighways=true, gmapInst=null, gmapPolyline=null, cachedMapLocations=null;
+let selectedConstraintId=null, cmFilter='all';
 let hypoCollapsed=true;
 let constraints=['No.046：道幅制限（2t車以下）','指定納品時間：10〜14時のみ','冷凍/冷蔵：温度帯混載不可'];
 let expandedConstraintVehs = new Set();
@@ -2359,10 +2453,208 @@ function renderCourseAISections(text, course){
   return html||`<div style="font-size:13px;color:var(--t2)">${text.replace(/\n/g,'<br>')}</div>`;
 }
 
+// ===== CONSTRAINT MANAGEMENT =====
+const CYCLE_STEPS_LABELS=['登録','初回調査','要見直し','次回確認','解消'];
+const CM_STATUS={review:{label:'要見直し',cls:'s-high'},inprogress:{label:'実施中',cls:'s-mid'},resolved:{label:'解消済み',cls:'s-ok'}};
+const CM_ACTION_STATUS={done:'完了',inprogress:'実施中',planned:'予定'};
+const CM_ACTION_CLS={done:'ast-done',inprogress:'ast-inprogress',planned:'ast-planned'};
+
+function renderConstraintTab(){
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  document.getElementById('cm-review').textContent=all.filter(c=>c.status==='review').length;
+  document.getElementById('cm-inprogress').textContent=all.filter(c=>c.status==='inprogress').length;
+  document.getElementById('cm-resolved').textContent=all.filter(c=>c.status==='resolved').length;
+  document.getElementById('cm-total').textContent=all.length;
+  // フィルターボタン
+  const filters=[{id:'all',label:'すべて'},{id:'review',label:'要見直し'},{id:'inprogress',label:'実施中'},{id:'resolved',label:'解消済み'}];
+  document.getElementById('cm-filters').innerHTML=filters.map(f=>`<button class="cm-filter-btn${cmFilter===f.id?' active':''}" onclick="setCmFilter('${f.id}')">${f.label}</button>`).join('');
+  renderConstraintList();
+  if(!all.find(c=>c.id===selectedConstraintId)){
+    selectedConstraintId=null;
+    document.getElementById('cm-detail').innerHTML='<div style="color:var(--t3);font-size:13px;padding:40px 0;text-align:center"><i class="ti ti-hand-click" style="font-size:28px;display:block;margin-bottom:8px"></i>左の一覧から制約条件を選択してください</div>';
+  }
+}
+
+function setCmFilter(f){ cmFilter=f; renderConstraintTab(); }
+
+function renderConstraintList(){
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  const filtered=cmFilter==='all'?all:all.filter(c=>c.status===cmFilter);
+  if(!filtered.length){ document.getElementById('cm-list').innerHTML='<div style="color:var(--t3);font-size:13px;text-align:center;padding:20px 0">該当する制約条件がありません</div>'; return; }
+  document.getElementById('cm-list').innerHTML=filtered.map(c=>{
+    const reg=new Date(c.registeredAt), months=Math.floor((Date.now()-reg.getTime())/(30*24*3600*1000));
+    const st=CM_STATUS[c.status]||CM_STATUS.review;
+    const overdue=c.nextReview&&new Date(c.nextReview)<new Date();
+    return `<div class="cm-card${c.id===selectedConstraintId?' selected':''}" onclick="selectConstraint(${c.id})">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+        <span class="cm-card-vno">${c.vehicleNo}</span>
+        <span class="status-pill ${st.cls}" style="font-size:10px;padding:2px 7px">${st.label}</span>
+      </div>
+      <div class="cm-card-content">${c.content}</div>
+      <div class="cm-card-meta">
+        <span>${c.category}</span><span>・</span><span>登録${months}ヶ月</span>
+        ${c.nextReview?`<span>・</span><span style="color:${overdue?'var(--red)':'var(--t3)'}">次回: ${c.nextReview}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectConstraint(id){
+  selectedConstraintId=id;
+  renderConstraintList();
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  const c=all.find(x=>x.id===id);
+  if(!c) return;
+  renderConstraintDetail(c);
+}
+
+function renderCycleProgress(step){
+  return `<div class="cycle-bar">${CYCLE_STEPS_LABELS.map((label,i)=>{
+    const cls=i<step?'done':i===step?'current':'future';
+    const icon=i<step?'✓':String(i+1);
+    return `<div class="cycle-step ${cls}"><div class="cycle-dot">${icon}</div><div class="cycle-label">${label}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function renderConstraintDetail(c){
+  const reg=new Date(c.registeredAt), months=Math.floor((Date.now()-reg.getTime())/(30*24*3600*1000));
+  document.getElementById('cm-detail').innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:3px">${c.content}</div>
+      <div style="font-size:12px;color:var(--t2)">${c.vehicleNo}　${c.category}　登録: ${c.registeredAt}（${months}ヶ月経過）</div>
+      ${c.note?`<div style="font-size:12px;color:var(--t3);margin-top:3px">${c.note}</div>`:''}
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">見直しサイクル進捗</div>
+    ${renderCycleProgress(c.cycleStep)}
+    <div class="ai-diag-box">
+      <div class="ai-diag-title"><i class="ti ti-sparkles"></i> AI改善可能性診断</div>
+      <div class="ai-diag-body" id="cm-ai-body-${c.id}">
+        ${c.aiDiagnosis ? formatConstraintAI(c.aiDiagnosis)
+          : hasApiKey()
+            ? `<div>この制約は登録から<strong>${months}ヶ月</strong>経過しています。<br><button class="btn" style="margin-top:8px;font-size:11px;padding:3px 10px;color:#5B21B6;border-color:#C4B5FD" onclick="loadConstraintAI(${c.id})"><i class="ti ti-sparkles"></i> AI診断を実行</button></div>`
+            : `この制約は登録から${months}ヶ月経過しています。APIキーを設定するとAI診断が有効になります。`}
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">改善アクション履歴</div>
+    <div class="action-grid">
+      ${c.actions.map(a=>`<div class="action-item">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+          <span class="status-pill ${CM_ACTION_CLS[a.status]}" style="font-size:10px;padding:1px 7px">${CM_ACTION_STATUS[a.status]}</span>
+          <span style="font-size:10px;color:var(--t3)">${a.date}</span>
+        </div>
+        <div style="font-size:12px;color:var(--t1)">${a.text}</div>
+      </div>`).join('')}
+      <div class="action-add" onclick="addConstraintAction(${c.id})"><i class="ti ti-plus"></i> アクションを追加</div>
+    </div>
+    <div style="border-top:1px solid var(--bl);padding-top:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">次回見直し日設定</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <input type="date" id="cm-date-${c.id}" value="${c.nextReview}" style="flex:1;min-width:140px;font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1)">
+        <select id="cm-remind-${c.id}" style="flex:1;min-width:120px;font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bm);background:var(--bg2);color:var(--t1)">
+          ${['3日前','1週間前','2週間前','1ヶ月前'].map(r=>`<option value="${r}"${c.remind===r?' selected':''}>${r}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary" id="cm-save-btn-${c.id}" style="font-size:12px;padding:7px 14px;white-space:nowrap" onclick="saveNextReview(${c.id})"><i class="ti ti-device-floppy"></i> 保存</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" style="flex:1;font-size:12px;padding:7px 14px;background:var(--green-l);color:var(--green);border-color:var(--green)" onclick="resolveConstraint(${c.id})">✅ 制約が解消された</button>
+        <button class="btn" style="flex:1;font-size:12px;padding:7px 14px;background:var(--red-l);color:var(--red);border-color:var(--red-b)" onclick="escalateConstraint(${c.id})">🔺 エスカレーション</button>
+      </div>
+    </div>`;
+}
+
+async function loadConstraintAI(id){
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  const c=all.find(x=>x.id===id);
+  if(!c) return;
+  const bodyEl=document.getElementById(`cm-ai-body-${id}`);
+  if(!bodyEl) return;
+  const months=Math.floor((Date.now()-new Date(c.registeredAt).getTime())/(30*24*3600*1000));
+  bodyEl.innerHTML='<span style="color:#7C3AED;font-size:13px">AI診断中...</span>';
+  const prompt=`あなたは物流コスト改善の専門AIです。以下の制約条件の改善シナリオを提示してください。
+
+制約内容：${c.content}
+対象：${c.vehicleNo}　カテゴリ：${c.category}
+登録から${months}ヶ月経過　現ステータス：${CM_STATUS[c.status]?.label||c.status}
+補足：${c.note||'なし'}
+これまでのアクション：${c.actions.length?c.actions.map(a=>a.text).join('、'):'なし'}
+
+以下の形式で100字以内で簡潔に：
+【現状評価】（1文）
+【改善シナリオ】（1〜2文）
+【推奨次アクション】（1文）
+
+プレーンテキストのみ。`;
+  try{
+    const res=await fetch('https://anthropic-proxy.kurihara-takashi.workers.dev',{
+      method:'POST',headers:{'Content-Type':'application/json','x-api-key':getStoredApiKey(),'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result=await res.json();
+    const text=cleanHtmlText(result.content?.[0]?.text||'');
+    c.aiDiagnosis=text;
+    if(document.getElementById(`cm-ai-body-${id}`)) document.getElementById(`cm-ai-body-${id}`).innerHTML=formatConstraintAI(text);
+  }catch(e){
+    if(document.getElementById(`cm-ai-body-${id}`)) document.getElementById(`cm-ai-body-${id}`).textContent='AI診断の取得に失敗しました。';
+    console.error('[ConstraintAI]',e);
+  }
+}
+
+function formatConstraintAI(text){
+  if(!text) return '';
+  const defs=[{m:'【現状評価】',n:'【改善シナリオ】'},{m:'【改善シナリオ】',n:'【推奨次アクション】'},{m:'【推奨次アクション】',n:null}];
+  let html='';
+  defs.forEach(d=>{
+    if(!text.includes(d.m)) return;
+    const after=text.split(d.m)[1]||'';
+    const content=d.n?(after.split(d.n)[0]||'').trim():after.trim();
+    if(content) html+=`<div style="margin-bottom:8px"><strong style="font-size:10px;color:#7C3AED;display:block;margin-bottom:2px">${d.m}</strong><span style="font-size:13px">${content.replace(/\n/g,'<br>')}</span></div>`;
+  });
+  return html||`<div style="font-size:13px">${text.replace(/\n/g,'<br>')}</div>`;
+}
+
+function addConstraintAction(id){
+  const text=prompt('アクション内容を入力してください：');
+  if(!text||!text.trim()) return;
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  const c=all.find(x=>x.id===id);
+  if(!c) return;
+  c.actions.push({id:Date.now(),text:text.trim(),status:'planned',date:new Date().toISOString().slice(0,10)});
+  renderConstraintDetail(c); renderConstraintList();
+}
+
+function saveNextReview(id){
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  const c=all.find(x=>x.id===id);
+  if(!c) return;
+  const date=document.getElementById(`cm-date-${id}`)?.value;
+  const remind=document.getElementById(`cm-remind-${id}`)?.value;
+  if(date) c.nextReview=date;
+  if(remind) c.remind=remind;
+  renderConstraintList();
+  const btn=document.getElementById(`cm-save-btn-${id}`);
+  if(btn){btn.textContent='✓ 保存済み';setTimeout(()=>{btn.innerHTML='<i class="ti ti-device-floppy"></i> 保存';},2000);}
+}
+
+function resolveConstraint(id){
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  const c=all.find(x=>x.id===id);
+  if(!c||!confirm(`「${c.content}」を解消済みに変更しますか？`)) return;
+  c.status='resolved'; c.cycleStep=4;
+  renderConstraintTab(); selectedConstraintId=id; renderConstraintList(); renderConstraintDetail(c);
+}
+
+function escalateConstraint(id){
+  const all=MANAGED_CONSTRAINTS[currentCenter]||[];
+  const c=all.find(x=>x.id===id);
+  if(!c) return;
+  alert(`「${c.content}」のエスカレーションを記録しました。\n上位管理者への報告が必要な制約として登録されます。`);
+}
+
 function showStep(n, category, fromSim){
   // タブ直接クリックまたは仮説→③遷移のとき、sim由来の保留データをクリア
   if(n===2 && !fromSim) pendingApFromSim = null;
-  for(let i=0;i<5;i++){
+  for(let i=0;i<6;i++){
     document.getElementById('step'+i)?.classList.toggle('section-hidden',i!==n);
     document.getElementById('tab'+i)?.classList.toggle('active',i===n);
   }
@@ -2370,6 +2662,7 @@ function showStep(n, category, fromSim){
   if(n===2) renderAP(category);
   if(n===3){renderTickets();setTimeout(drawTicketChart,50);}
   if(n===4){selectedCourse=null;renderCourseTable();}
+  if(n===5){selectedConstraintId=null;cmFilter='all';renderConstraintTab();}
 }
 
 function changeCenter(val){
@@ -2387,6 +2680,7 @@ function changeCenter(val){
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
     if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); document.getElementById('courseAiContent').innerHTML='<div class="right-panel-empty"><i class="ti ti-hand-click" style="font-size:28px"></i><span>コースを選択してください</span></div>'; document.getElementById('timelineContent').innerHTML='<div style="color:var(--t3);font-size:13px;padding:16px 0;text-align:center">コースを選択するとタイムラインが表示されます</div>'; document.getElementById('courseAiLabel').textContent=''; document.getElementById('timelineCourseLabel').textContent=''; const ms=document.getElementById('courseMapSection');if(ms) ms.style.display='none'; gmapInst=null;gmapPolyline=null;cachedMapLocations=null; }
+    if(document.getElementById('step5') && !document.getElementById('step5').classList.contains('section-hidden')){ selectedConstraintId=null; cmFilter='all'; renderConstraintTab(); }
   }catch(e){console.warn('Error re-rendering screens after center change',e)}
 }
 
@@ -2405,6 +2699,7 @@ function changeMonth(val){
     if(document.getElementById('step2') && !document.getElementById('step2').classList.contains('section-hidden')) renderAP();
     if(document.getElementById('step3') && !document.getElementById('step3').classList.contains('section-hidden')){ renderTickets(); setTimeout(drawTicketChart,50); }
     if(document.getElementById('step4') && !document.getElementById('step4').classList.contains('section-hidden')){ selectedCourse=null; renderCourseTable(); const ms2=document.getElementById('courseMapSection');if(ms2) ms2.style.display='none'; gmapInst=null;gmapPolyline=null;cachedMapLocations=null; }
+    if(document.getElementById('step5') && !document.getElementById('step5').classList.contains('section-hidden')){ renderConstraintTab(); }
   }catch(e){console.warn('Error re-rendering screens after month change',e)}
 }
 
