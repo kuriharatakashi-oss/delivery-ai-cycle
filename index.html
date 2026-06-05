@@ -1216,15 +1216,34 @@ function toggleVehConstraint(vno, event){
   }
 }
 
+// 車両制約をMANAGED_CONSTRAINTSに同期登録
+function _syncVehConstraintToManaged(vno, category, reason, note){
+  const mid = `vc-${Date.now()}-${Math.floor(Math.random()*9999)}`;
+  const today = new Date().toISOString().slice(0,10);
+  const review = new Date(); review.setMonth(review.getMonth()+3);
+  const mc = MANAGED_CONSTRAINTS[currentCenter]||(MANAGED_CONSTRAINTS[currentCenter]=[]);
+  mc.unshift({id:mid, vehicleNo:vno, category, content:reason, note:note||'', status:'review',
+    registeredAt:today, cycleStep:1, nextReview:review.toISOString().slice(0,10),
+    remind:'1週間前', aiDiagnosis:null, actions:[], source:'vehicle_table'});
+  return mid;
+}
+
+function _refreshStep5IfVisible(){
+  if(document.getElementById('step5')&&!document.getElementById('step5').classList.contains('section-hidden'))
+    renderConstraintTab();
+}
+
 function applyQuickConstraint(vno, qi, event){
   event.stopPropagation();
   const q = QUICK_CONSTRAINTS[qi];
   const map = vehicleSpecificConstraints[currentCenter]||(vehicleSpecificConstraints[currentCenter]={});
   if(!map[vno]) map[vno]=[];
   if(map[vno].some(c=>c.category===q.category&&c.reason===q.reason)) return;
-  map[vno].push({category:q.category, reason:q.reason, note:'', source:'table'});
+  const mid = _syncVehConstraintToManaged(vno, q.category, q.reason, '');
+  map[vno].push({category:q.category, reason:q.reason, note:'', source:'table', managedId:mid});
   renderVehTable();
   if(!document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
+  _refreshStep5IfVisible();
 }
 
 function addVehConstraint(vno, event){
@@ -1235,18 +1254,29 @@ function addVehConstraint(vno, event){
   if(!val) return;
   const map = vehicleSpecificConstraints[currentCenter]||(vehicleSpecificConstraints[currentCenter]={});
   if(!map[vno]) map[vno]=[];
-  map[vno].push({category:'カスタム', reason:val, note:'', source:'table'});
+  const mid = _syncVehConstraintToManaged(vno, 'カスタム', val, '');
+  map[vno].push({category:'カスタム', reason:val, note:'', source:'table', managedId:mid});
   inp.value='';
   renderVehTable();
   if(!document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
+  _refreshStep5IfVisible();
 }
 
 function removeVehConstraint(vno, idx, event){
   event.stopPropagation();
   const map = vehicleSpecificConstraints[currentCenter]||{};
-  if(map[vno]){ map[vno].splice(idx,1); }
+  if(map[vno]){
+    const removed = map[vno].splice(idx, 1)[0];
+    // MANAGED_CONSTRAINTSからも削除
+    if(removed?.managedId){
+      const mc = MANAGED_CONSTRAINTS[currentCenter]||[];
+      const mi = mc.findIndex(x=>x.id===removed.managedId);
+      if(mi>=0) mc.splice(mi,1);
+    }
+  }
   renderVehTable();
   if(!document.getElementById('step1').classList.contains('section-hidden')){renderHypos();renderConstraints();}
+  _refreshStep5IfVisible();
 }
 
 function selectVeh(i){
@@ -2920,6 +2950,16 @@ function resolveConstraint(id){
   const found=findConstraint(id);
   if(!found||!confirm(`「${found.constraint.content}」を解消済みに変更しますか？`)) return;
   found.constraint.status='resolved'; found.constraint.cycleStep=4;
+  // vehicle_table由来の制約は①の車両タグからも削除
+  if(found.constraint.source==='vehicle_table'){
+    const vcMap = vehicleSpecificConstraints[found.centerKey]||{};
+    const vno = found.constraint.vehicleNo;
+    if(vcMap[vno]){
+      const vi = vcMap[vno].findIndex(x=>x.managedId===id);
+      if(vi>=0) vcMap[vno].splice(vi,1);
+    }
+    if(!document.getElementById('step0').classList.contains('section-hidden')) renderVehTable();
+  }
   renderConstraintTab(); selectedConstraintId=id;
   if(cmViewMode==='hq') renderHqTable(); else renderConstraintList();
   renderConstraintDetail(found.constraint);
